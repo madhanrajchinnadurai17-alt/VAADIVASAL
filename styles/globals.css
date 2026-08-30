@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Mukta+Malar:wght@400;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #120B09;
+  --foreground: #FDF6E2;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Outfit', sans-serif;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1e120d;
+}
+::-webkit-scrollbar-thumb {
+  background: #C84B31;
+  border-radius: 3px;
+}
+
+/* Kolam / Rangoli subtle pattern background */
+.kolam-pattern {
+  background-image: radial-gradient(#F26A1B 1px, transparent 1px), radial-gradient(#FFA000 1px, #120B09 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+  opacity: 0.15;
+}
+
+.festival-glow {
+  box-shadow: 0 0 35px rgba(242, 106, 27, 0.4), inset 0 0 15px rgba(255, 160, 0, 0.2);
+}
+
+.tame-meter-glow {
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+}
+
+/* Canvas container responsive centering */
+#phaser-game-canvas canvas {
+  margin: 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(200, 75, 49, 0.3);
+  display: block;
+}
