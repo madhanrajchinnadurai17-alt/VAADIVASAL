@@ -7,54 +7,39 @@ interface AICompetitor {
   sprite: Phaser.GameObjects.Image;
   bibNumber: number;
   speed: number;
-  offsetAngle: number;
   name: string;
-  distanceScore: number;
-  timingScore: number;
-  positionScore: number;
-  angleScore: number;
+  targetX: number;
+  targetY: number;
   totalScore: number;
 }
 
 export class ArenaScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Image;
   private bull!: Phaser.GameObjects.Image;
+  private vaadivasalArch!: Phaser.GameObjects.Image;
   private aiCompetitors: AICompetitor[] = [];
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys: { [key: string]: Phaser.Input.Keyboard.Key } = {};
+  private actionKeys: { [key: string]: Phaser.Input.Keyboard.Key } = {};
   private personality!: BullPersonality;
   private village!: VillageEvent;
 
-  // Bull AI state & dynamic routes
-  private bullVelocity = new Phaser.Math.Vector2(0, 0);
-  private bullTargetAngle = 0;
+  // Bull AI state
+  private bullSpeed = 140;
+  private bullTargetX = 400;
+  private bullTargetY = 260;
   private nextVeerTime = 0;
-  private bullSpeed = 160;
-  private selectedRoute = 'A';
 
-  // Proximity phase timing
+  // Phase Timing
+  private roundTimer = 54;
   private phaseDuration = 4500;
-  private phaseTimer = 0;
+  private phaseTimer = 4500;
   private isPhaseActive = false;
   private retryCount = 0;
+  private isSprinting = false;
 
-  // Player continuous scoring factors
-  private playerScores = {
-    distance: 0,
-    timing: 0,
-    position: 0,
-    angle: 0,
-    total: 0,
-  };
-  private playerCloseTime = 0;
-
-  // Visual cues & HUD
-  private proximityRing!: Phaser.GameObjects.Graphics;
+  // Visuals
   private dustParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
-  private countdownText!: Phaser.GameObjects.Text;
-  private factorsHudText!: Phaser.GameObjects.Text;
-  private commentatorText!: Phaser.GameObjects.Text;
-  private personalityBadgeText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'ArenaScene' });
@@ -64,12 +49,8 @@ export class ArenaScene extends Phaser.Scene {
     this.retryCount = data.retryCount || 0;
     this.personality = data.personality || getRandomBullPersonality();
     this.village = data.village || TAMIL_VILLAGES[0];
-    this.playerCloseTime = 0;
-    this.bullSpeed = this.personality.speed + this.village.bullSpeedBonus;
-
-    // Pick dynamic randomized route (A, B, C, D, E)
-    const routes = ['A', 'B', 'C', 'D', 'E'];
-    this.selectedRoute = routes[Math.floor(Math.random() * routes.length)];
+    this.bullSpeed = this.personality.speed * 0.9;
+    this.roundTimer = 54;
   }
 
   create() {
@@ -77,87 +58,174 @@ export class ArenaScene extends Phaser.Scene {
     this.cameras.main.fadeIn(400, 18, 11, 9);
     soundManager.startFestiveDrums(145);
 
-    // Village-Specific Arena Sand Floor
+    // 1. Perspective Sandy Arena Floor
     const ground = this.add.tileSprite(width / 2, height / 2, width, height, 'arena_ground');
     ground.setTint(this.village.arenaTheme.groundTint);
 
-    // Sacred Kolam center
-    const kolamGraphics = this.add.graphics();
-    kolamGraphics.lineStyle(2, 0xffffff, 0.4);
-    kolamGraphics.strokeCircle(width / 2, height / 2, 110);
-    kolamGraphics.strokeCircle(width / 2, height / 2, 180);
-    for (let deg = 0; deg < 360; deg += 45) {
-      const rad = Phaser.Math.DegToRad(deg);
-      kolamGraphics.strokeLineShape(new Phaser.Geom.Line(
-        width / 2, height / 2,
-        width / 2 + Math.cos(rad) * 180,
-        height / 2 + Math.sin(rad) * 180
-      ));
-    }
+    // 2. Spectator Double Barricades on Left & Right
+    const galleryLeft = this.add.image(width * 0.15, height * 0.35, 'spectator_gallery').setScale(0.5, 0.9).setAngle(-12);
+    const galleryRight = this.add.image(width * 0.85, height * 0.35, 'spectator_gallery').setScale(0.5, 0.9).setAngle(12);
 
-    // Village-Specific Barricades
-    const fenceG = this.add.graphics();
-    fenceG.lineStyle(8, this.village.arenaTheme.fenceColor, 0.9);
-    fenceG.strokeRect(20, 20, width - 40, height - 40);
-    fenceG.lineStyle(2, 0xffd700, 0.5);
-    fenceG.strokeRect(26, 26, width - 52, height - 52);
+    // 3. Central Vaadivasal Gate Arch with Tamil Signboards ("வாடிவாசல்", "அன்பே", "அறம்")
+    this.vaadivasalArch = this.add.image(width / 2, 140, 'vaadivasal_arch_front').setScale(0.85);
 
-    // Crowd silhouettes based on density
-    const crowdAlpha = Math.min(1.0, 0.5 * this.village.arenaTheme.crowdDensity);
-    this.add.image(width / 2, 15, 'crowd_silhouette').setScale(1.2, 0.6).setAlpha(crowdAlpha);
-    this.add.image(width / 2, height - 15, 'crowd_silhouette').setScale(1.2, -0.6).setAlpha(crowdAlpha);
+    // Text on Vaadivasal Arch
+    this.add.text(width / 2, 88, 'வாடிவாசல்', {
+      fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
+      fontSize: '14px',
+      color: '#DC2626',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    this.add.text(width / 2 - 105, 126, 'அன்பே', {
+      fontFamily: "'Mukta Malar', sans-serif",
+      fontSize: '11px',
+      color: '#15803D',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    this.add.text(width / 2 + 105, 126, 'அறம்', {
+      fontFamily: "'Mukta Malar', sans-serif",
+      fontSize: '11px',
+      color: '#15803D',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
     // Dust particles
     this.dustParticles = this.add.particles(0, 0, 'particle_dust', {
-      lifespan: 400,
-      scale: { start: 0.8, end: 0.1 },
-      alpha: { start: 0.6, end: 0 },
-      speed: { min: 20, max: 80 },
+      lifespan: 500,
+      scale: { start: 1.2, end: 0.2 },
+      alpha: { start: 0.8, end: 0 },
+      speed: { min: 30, max: 100 },
       emitting: false,
     });
 
-    this.proximityRing = this.add.graphics();
+    // 4. Perspective Front-Charging Bull emerging from Vaadivasal
+    this.bull = this.add.image(width / 2, 190, 'bull_perspective');
+    this.bull.setScale(0.9);
 
-    // 1. Spawn Bull at top-center
-    this.bull = this.add.image(width / 2, 80, 'bull_top');
-    this.bull.setScale(1.0);
-    this.bull.setAngle(90);
-    this.bullVelocity.set(0, this.bullSpeed);
+    // 5. Player in Third-Person Foreground (Bib #07, Yellow JALLIKATTU Jersey)
+    this.player = this.add.image(width * 0.35, height - 110, 'player_back_perspective');
+    this.player.setScale(1.0);
 
-    // 2. Spawn Player with Bib #07
-    this.player = this.add.image(width / 2, height - 100, 'player_top');
-    this.player.setScale(1.1);
-
-    // 3. Spawn Numbered AI Competitors
+    // 6. AI Competitors in Yellow Jerseys across arena (Murugan, Siva, Karthik, Ajith, Dinesh)
     this.aiCompetitors = [];
-    const aiData = [
-      { name: 'Velan', bib: 18, sprite: 'ai_tamer_top_1', x: width * 0.22, y: height - 130 },
-      { name: 'Muthu', bib: 24, sprite: 'ai_tamer_top_2', x: width * 0.38, y: height - 85 },
-      { name: 'Kannan', bib: 31, sprite: 'ai_tamer_top_3', x: width * 0.62, y: height - 85 },
-      { name: 'Marudhu', bib: 42, sprite: 'ai_tamer_top_4', x: width * 0.78, y: height - 130 },
-      { name: 'Periyavan', bib: 55, sprite: 'ai_tamer_top_1', x: width * 0.5, y: height - 145 },
+    const aiList = [
+      { name: 'Murugan', bib: 1, x: width * 0.18, y: height * 0.42 },
+      { name: 'Siva', bib: 2, x: width * 0.25, y: height * 0.48 },
+      { name: 'Karthik', bib: 3, x: width * 0.68, y: height * 0.42 },
+      { name: 'Ajith', bib: 4, x: width * 0.76, y: height * 0.48 },
+      { name: 'Dinesh', bib: 5, x: width * 0.84, y: height * 0.52 },
     ];
 
-    const activeCount = Math.min(aiData.length, this.village.aiCompetitorCount);
-    for (let i = 0; i < activeCount; i++) {
-      const data = aiData[i];
-      const aiSprite = this.add.image(data.x, data.y, data.sprite);
-      aiSprite.setScale(1.0);
+    aiList.forEach((data, idx) => {
+      const sprite = this.add.image(data.x, data.y, `ai_perspective_${idx + 1}`);
+      sprite.setScale(0.85);
       this.aiCompetitors.push({
-        sprite: aiSprite,
+        sprite,
         bibNumber: data.bib,
-        speed: 125 + Math.random() * 25,
-        offsetAngle: (Math.random() - 0.5) * 0.8,
+        speed: 120 + Math.random() * 25,
         name: data.name,
-        distanceScore: 0,
-        timingScore: 0,
-        positionScore: 0,
-        angleScore: 0,
+        targetX: data.x,
+        targetY: data.y,
         totalScore: 0,
       });
-    }
+    });
 
-    // Setup Controls
+    // 7. BUILD SCREENSHOT-ACCURATE HUD OVERLAYS
+
+    // TOP-LEFT: Pause + Bull Info Card + Target Objective
+    const pauseBtn = this.add.rectangle(35, 35, 34, 34, 0x120b09, 0.9);
+    pauseBtn.setStrokeStyle(2, 0xffffff);
+    this.add.text(35, 35, '||', { fontFamily: 'monospace', fontSize: '16px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+
+    const bullCardBg = this.add.rectangle(170, 35, 170, 38, 0x120b09, 0.9);
+    bullCardBg.setStrokeStyle(1.5, 0x3f3f46);
+    this.add.text(105, 24, '🐂 BULL', { fontFamily: "'Outfit', sans-serif", fontSize: '9px', color: '#9ca3af', fontStyle: 'bold' });
+    this.add.text(105, 36, 'KARUPPAN', { fontFamily: "'Outfit', sans-serif", fontSize: '12px', color: '#FFFFFF', fontStyle: 'bold' });
+
+    // Green Bull Stamina / Vital bar
+    const vitalBg = this.add.rectangle(170, 48, 140, 5, 0x27272a);
+    const vitalFill = this.add.rectangle(170, 48, 136, 4, 0x22c55e);
+
+    // Target Objective Card
+    const targetCardBg = this.add.rectangle(65, 110, 95, 48, 0x120b09, 0.9);
+    targetCardBg.setStrokeStyle(1.5, 0xeab308);
+    this.add.text(65, 96, 'TARGET', { fontFamily: "'Outfit', sans-serif", fontSize: '9px', color: '#eab308', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.text(65, 115, 'HOLD THE BULL\nFOR 10 SECONDS', {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: '8.5px',
+      color: '#FFFFFF',
+      fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5);
+
+    // TOP-CENTER: Hexagonal Match Timer (ROUND 1 | 00:54)
+    const timerBg = this.add.rectangle(width / 2, 38, 130, 46, 0x120b09, 0.95);
+    timerBg.setStrokeStyle(2, 0xeab308);
+    this.add.text(width / 2, 26, 'ROUND 1', { fontFamily: "'Outfit', sans-serif", fontSize: '10px', color: '#eab308', fontStyle: 'bold' }).setOrigin(0.5);
+    this.add.text(width / 2, 44, '00:54', { fontFamily: "'Outfit', sans-serif", fontSize: '17px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+
+    // TOP-RIGHT: Score & Live Leaderboard (Murugan, Siva, Karthik, Ajith, Dinesh, 06 YOU)
+    const scoreBg = this.add.rectangle(width - 70, 25, 110, 26, 0x120b09, 0.9);
+    scoreBg.setStrokeStyle(1.5, 0x3f3f46);
+    this.add.text(width - 70, 25, 'SCORE : 250', { fontFamily: "'Outfit', sans-serif", fontSize: '11px', color: '#eab308', fontStyle: 'bold' }).setOrigin(0.5);
+
+    const playersBoxBg = this.add.rectangle(width - 65, 105, 115, 125, 0x120b09, 0.92);
+    playersBoxBg.setStrokeStyle(1.5, 0x3f3f46);
+    this.add.text(width - 65, 52, 'PLAYERS : 6', { fontFamily: "'Outfit', sans-serif", fontSize: '10px', color: '#9ca3af', fontStyle: 'bold' }).setOrigin(0.5);
+
+    const playerRows = [
+      { num: '01', name: 'MURUGAN', isYou: false },
+      { num: '02', name: 'SIVA', isYou: false },
+      { num: '03', name: 'KARTHIK', isYou: false },
+      { num: '04', name: 'AJITH', isYou: false },
+      { num: '05', name: 'DINESH', isYou: false },
+      { num: '06', name: 'YOU #07', isYou: true },
+    ];
+
+    playerRows.forEach((p, idx) => {
+      const y = 68 + idx * 16;
+      if (p.isYou) {
+        const youBg = this.add.rectangle(width - 65, y, 110, 14, 0xeab308);
+        this.add.text(width - 115, y, `${p.num}  ${p.name}`, { fontFamily: "'Outfit', sans-serif", fontSize: '9.5px', color: '#000000', fontStyle: 'bold' }).setOrigin(0, 0.5);
+      } else {
+        this.add.text(width - 115, y, `${p.num}  ${p.name}`, { fontFamily: "'Outfit', sans-serif", fontSize: '9px', color: '#e5e7eb', fontStyle: '600' }).setOrigin(0, 0.5);
+        this.add.text(width - 20, y, '✓', { fontFamily: "'Outfit', sans-serif", fontSize: '9px', color: '#22c55e', fontStyle: 'bold' }).setOrigin(0.5);
+      }
+    });
+
+    // BOTTOM-LEFT: Circular Touch Joystick Graphic
+    const joyBase = this.add.circle(95, height - 95, 48, 0x120b09, 0.7);
+    joyBase.setStrokeStyle(2, 0x71717a);
+    const joyThumb = this.add.circle(95, height - 95, 20, 0xffffff, 0.9);
+
+    // Direction indicators
+    this.add.triangle(95, height - 130, 0, 8, 8, 8, 4, 0, 0xffffff);
+    this.add.triangle(95, height - 60, 0, 0, 8, 0, 4, 8, 0xffffff);
+    this.add.triangle(60, height - 95, 8, 0, 8, 8, 0, 4, 0xffffff);
+    this.add.triangle(130, height - 95, 0, 0, 0, 8, 8, 4, 0xffffff);
+
+    // BOTTOM-RIGHT: Action Buttons (RUN, DIVE, GRAB)
+    // 1. RUN button
+    const runBtn = this.add.circle(width - 65, height - 165, 28, 0x18181b, 0.85);
+    runBtn.setStrokeStyle(2, 0xa1a1aa);
+    this.add.text(width - 65, height - 173, '🏃', { fontSize: '16px' }).setOrigin(0.5);
+    this.add.text(width - 65, height - 153, 'RUN', { fontFamily: "'Outfit', sans-serif", fontSize: '9px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+
+    // 2. DIVE button
+    const diveBtn = this.add.circle(width - 135, height - 65, 32, 0x18181b, 0.85);
+    diveBtn.setStrokeStyle(2, 0xa1a1aa);
+    this.add.text(width - 135, height - 74, '🤸', { fontSize: '18px' }).setOrigin(0.5);
+    this.add.text(width - 135, height - 54, 'DIVE', { fontFamily: "'Outfit', sans-serif", fontSize: '9px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+
+    // 3. GRAB button
+    const grabBtn = this.add.circle(width - 65, height - 80, 32, 0x18181b, 0.85);
+    grabBtn.setStrokeStyle(2, 0xa1a1aa);
+    this.add.text(width - 65, height - 89, '✋', { fontSize: '18px' }).setOrigin(0.5);
+    this.add.text(width - 65, height - 69, 'GRAB', { fontFamily: "'Outfit', sans-serif", fontSize: '9px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5);
+
+    // Controls setup
     if (this.input.keyboard) {
       this.cursors = this.input.keyboard.createCursorKeys();
       this.wasdKeys = {
@@ -166,68 +234,43 @@ export class ArenaScene extends Phaser.Scene {
         S: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
         D: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
       };
+      this.actionKeys = {
+        SHIFT: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
+        SPACE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+        E: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+      };
     }
 
-    // Touch / Pointer controls
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.isDown && this.isPhaseActive) {
-        const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.x, pointer.y);
-        this.player.x += Math.cos(angle) * 4.2;
-        this.player.y += Math.sin(angle) * 4.2;
-        this.player.rotation = angle + Math.PI / 2;
-        this.dustParticles.emitParticleAt(this.player.x, this.player.y, 1);
-      }
-    });
-
-    // TOP HUD: Village & Bull Personality Badge
-    const hudTopContainer = this.add.container(width / 2, 38);
-    const hudBg = this.add.rectangle(0, 0, 560, 56, 0x120b09, 0.85);
-    hudBg.setStrokeStyle(1.5, Phaser.Display.Color.HexStringToColor(this.personality.color).color);
-
-    this.personalityBadgeText = this.add.text(
-      0,
-      -12,
-      `ARENA: ${this.village.tamilName.toUpperCase()} | BULL: ${this.personality.badge}`,
-      {
-        fontFamily: "'Outfit', sans-serif",
-        fontSize: '12px',
-        color: this.personality.color,
-        fontStyle: 'bold',
-      }
-    ).setOrigin(0.5);
-
-    this.countdownText = this.add.text(0, 10, 'FLANK THE HUMP FROM THE SIDE! (4s)', {
-      fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
-      fontSize: '15px',
-      color: '#FFD700',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    hudTopContainer.add([hudBg, this.personalityBadgeText, this.countdownText]);
-
-    // Live 4-Factor Scoring HUD Bar
-    this.factorsHudText = this.add.text(width / 2, 76, 'Distance: 0% | Timing: 0% | Position: 0% | Angle: 0%', {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: '12px',
-      color: '#00F5D4',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 3,
-    }).setOrigin(0.5);
-
-    // Live Announcer Commentary Feed
-    this.commentatorText = this.add.text(width / 2, 98, `🎙️ "${this.village.tamilName} வாடிவாசலில் சீறிப் பாய்கிறது காளை!"`, {
-      fontFamily: "'Mukta Malar', sans-serif",
-      fontSize: '12px',
-      color: '#FFA000',
-      fontStyle: '600',
-      stroke: '#000000',
-      strokeThickness: 2.5,
-    }).setOrigin(0.5);
+    // Touch button interactions
+    runBtn.setInteractive().on('pointerdown', () => { this.isSprinting = true; });
+    runBtn.on('pointerup', () => { this.isSprinting = false; });
+    diveBtn.setInteractive().on('pointerdown', () => { this.triggerDive(); });
+    grabBtn.setInteractive().on('pointerdown', () => { this.triggerGrab(); });
 
     this.phaseTimer = this.phaseDuration;
     this.isPhaseActive = true;
-    this.nextVeerTime = this.time.now + (this.personality.veerIntervalMin + Math.random() * (this.personality.veerIntervalMax - this.personality.veerIntervalMin));
+    this.nextVeerTime = this.time.now + 800;
+  }
+
+  private triggerDive() {
+    soundManager.playThavilSnap(0.7);
+    this.tweens.add({
+      targets: this.player,
+      y: '-=35',
+      duration: 160,
+      yoyo: true,
+      ease: 'Quad.easeInOut',
+    });
+    this.dustParticles.emitParticleAt(this.player.x, this.player.y + 20, 6);
+  }
+
+  private triggerGrab() {
+    const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.bull.x, this.bull.y);
+    if (dist < 130) {
+      this.resolveProximityPhase(true);
+    } else {
+      soundManager.playGripMiss();
+    }
   }
 
   update(time: number, delta: number) {
@@ -236,66 +279,33 @@ export class ArenaScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const dt = delta / 1000;
 
-    // Detect closest participant
-    let closestParticipantDist = Infinity;
-    let closestParticipantAngle = 0;
-
-    const checkDist = (x: number, y: number) => {
-      const d = Phaser.Math.Distance.Between(this.bull.x, this.bull.y, x, y);
-      if (d < closestParticipantDist) {
-        closestParticipantDist = d;
-        closestParticipantAngle = Phaser.Math.Angle.Between(x, y, this.bull.x, this.bull.y);
-      }
-    };
-
-    checkDist(this.player.x, this.player.y);
-    this.aiCompetitors.forEach((ai) => checkDist(ai.sprite.x, ai.sprite.y));
-
-    // Dynamic Route Steering Logic
+    // --- 1. PERSPECTIVE BULL AI CHARGE & VEER ---
     if (time > this.nextVeerTime) {
-      const margin = 90;
-      let desiredAngle = this.bullTargetAngle + (Math.random() - 0.5) * this.personality.veerAngleMagnitude;
-
-      // Apply dynamic route bias
-      if (this.selectedRoute === 'A') desiredAngle += 0.3; // Right arc
-      else if (this.selectedRoute === 'B') desiredAngle -= 0.3; // Left arc
-
-      // Evasive reaction away from closest participant
-      if (closestParticipantDist < this.personality.evasionRadius) {
-        const evadeWeight = this.personality.evasionStrength;
-        desiredAngle = Phaser.Math.Angle.RotateTo(desiredAngle, closestParticipantAngle, evadeWeight);
-      }
-
-      // Avoid arena walls
-      if (this.bull.x < margin) desiredAngle = 0;
-      else if (this.bull.x > width - margin) desiredAngle = Math.PI;
-      else if (this.bull.y < margin) desiredAngle = Math.PI / 2;
-      else if (this.bull.y > height - margin) desiredAngle = -Math.PI / 2;
-
-      this.bullTargetAngle = desiredAngle;
-      const interval = this.personality.veerIntervalMin + Math.random() * (this.personality.veerIntervalMax - this.personality.veerIntervalMin);
-      this.nextVeerTime = time + interval;
+      // Pick dynamic target in the sandy foreground arena
+      this.bullTargetX = width * 0.3 + Math.random() * (width * 0.4);
+      this.bullTargetY = height * 0.45 + Math.random() * (height * 0.25);
+      this.nextVeerTime = time + (this.personality.veerIntervalMin + Math.random() * 600);
       soundManager.playThavilBass(0.35);
     }
 
-    // Rotate & Move Bull
-    const turnRate = this.personality.type === 'Aggressive' || this.personality.type === 'Highly Reactive' ? 4.8 : 3.2;
-    const currentBullAngle = Phaser.Math.DegToRad(this.bull.angle - 90);
-    const newBullAngle = Phaser.Math.Angle.RotateTo(currentBullAngle, this.bullTargetAngle, turnRate * dt);
-    this.bull.angle = Phaser.Math.RadToDeg(newBullAngle) + 90;
+    // Move bull toward target position
+    const dx = this.bullTargetX - this.bull.x;
+    const dy = this.bullTargetY - this.bull.y;
+    this.bull.x += dx * 1.8 * dt;
+    this.bull.y += dy * 1.8 * dt;
 
-    this.bull.x += Math.cos(newBullAngle) * this.bullSpeed * dt;
-    this.bull.y += Math.sin(newBullAngle) * this.bullSpeed * dt;
+    // Scale bull perspective slightly as it approaches camera
+    const scale = Phaser.Math.Clamp(0.75 + (this.bull.y / height) * 0.5, 0.75, 1.25);
+    this.bull.setScale(scale);
 
-    this.bull.x = Phaser.Math.Clamp(this.bull.x, 60, width - 60);
-    this.bull.y = Phaser.Math.Clamp(this.bull.y, 60, height - 60);
-
+    // Kicking up sand dust from hooves
     if (Math.random() < 0.4) {
-      this.dustParticles.emitParticleAt(this.bull.x, this.bull.y, 1);
+      this.dustParticles.emitParticleAt(this.bull.x, this.bull.y + 60, 2);
     }
 
-    // Player Controls
-    const playerSpeed = 220;
+    // --- 2. PLAYER THIRD-PERSON MOVEMENT ---
+    const sprintMultiplier = (this.actionKeys?.SHIFT?.isDown || this.isSprinting) ? 1.4 : 1.0;
+    const playerSpeed = 220 * sprintMultiplier;
     let moveX = 0;
     let moveY = 0;
 
@@ -310,129 +320,40 @@ export class ArenaScene extends Phaser.Scene {
       const moveVec = new Phaser.Math.Vector2(moveX, moveY).normalize();
       this.player.x += moveVec.x * playerSpeed * dt;
       this.player.y += moveVec.y * playerSpeed * dt;
-
-      const targetRotation = Math.atan2(moveVec.y, moveVec.x) + Math.PI / 2;
-      this.player.rotation = Phaser.Math.Angle.RotateTo(this.player.rotation, targetRotation, 10 * dt);
-      this.dustParticles.emitParticleAt(this.player.x, this.player.y + 10, 1);
+      this.dustParticles.emitParticleAt(this.player.x, this.player.y + 40, 1);
     }
 
-    this.player.x = Phaser.Math.Clamp(this.player.x, 40, width - 40);
-    this.player.y = Phaser.Math.Clamp(this.player.y, 40, height - 40);
+    this.player.x = Phaser.Math.Clamp(this.player.x, width * 0.15, width * 0.85);
+    this.player.y = Phaser.Math.Clamp(this.player.y, height * 0.45, height - 60);
 
-    // AI Tamers Interaction
+    // --- 3. AI TAMERS POSITIONING ---
     this.aiCompetitors.forEach((ai) => {
-      const targetX = this.bull.x + Math.cos(newBullAngle + ai.offsetAngle) * 40;
-      const targetY = this.bull.y + Math.sin(newBullAngle + ai.offsetAngle) * 40;
-
-      const angleToTarget = Phaser.Math.Angle.Between(ai.sprite.x, ai.sprite.y, targetX, targetY);
-      ai.sprite.x += Math.cos(angleToTarget) * ai.speed * dt;
-      ai.sprite.y += Math.sin(angleToTarget) * ai.speed * dt;
-      ai.sprite.rotation = angleToTarget + Math.PI / 2;
-
-      const dist = Phaser.Math.Distance.Between(ai.sprite.x, ai.sprite.y, this.bull.x, this.bull.y);
-      ai.distanceScore = Math.max(0, Math.min(100, Math.round((220 - dist) / 1.8)));
-
-      const aiAngleToBull = Phaser.Math.Angle.Between(ai.sprite.x, ai.sprite.y, this.bull.x, this.bull.y);
-      const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(aiAngleToBull - newBullAngle));
-      ai.positionScore = Math.round(Math.sin(angleDiff) * 100);
-      ai.angleScore = Math.max(0, Math.round((1 - Math.abs(angleDiff - Math.PI / 2) / (Math.PI / 2)) * 100));
-      ai.timingScore = Math.min(100, Math.round((1 - this.phaseTimer / this.phaseDuration) * 70 + Math.random() * 30));
-
-      ai.totalScore = Math.round(
-        ai.distanceScore * 0.35 +
-        ai.timingScore * 0.20 +
-        ai.positionScore * 0.25 +
-        ai.angleScore * 0.20
-      );
+      const targetX = this.bull.x + (ai.bibNumber % 2 === 0 ? 50 : -50);
+      const targetY = this.bull.y + 20;
+      ai.sprite.x += (targetX - ai.sprite.x) * 1.5 * dt;
+      ai.sprite.y += (targetY - ai.sprite.y) * 1.5 * dt;
     });
 
-    // Player 4-Factor Scoring
-    const playerDist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.bull.x, this.bull.y);
-    const distScore = Math.max(0, Math.min(100, Math.round((220 - playerDist) / 1.8)));
-
-    if (playerDist < 140) {
-      this.playerCloseTime += dt * 35;
-    }
-    const timingScore = Math.min(100, Math.round(this.playerCloseTime));
-
-    const angleToBull = Phaser.Math.Angle.Between(this.player.x, this.player.y, this.bull.x, this.bull.y);
-    const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(angleToBull - newBullAngle));
-    const positionScore = Math.round(Math.sin(angleDiff) * 100);
-
-    const playerHeading = this.player.rotation - Math.PI / 2;
-    const headingDiff = Math.abs(Phaser.Math.Angle.Wrap(playerHeading - newBullAngle));
-    const angleScore = Math.max(0, Math.min(100, Math.round((1 - headingDiff / Math.PI) * 100)));
-
-    const totalScore = Math.round(
-      distScore * 0.35 +
-      timingScore * 0.20 +
-      positionScore * 0.25 +
-      angleScore * 0.20
-    );
-
-    this.playerScores = {
-      distance: distScore,
-      timing: timingScore,
-      position: positionScore,
-      angle: angleScore,
-      total: totalScore,
-    };
-
-    this.factorsHudText.setText(
-      `Distance: ${distScore}% | Timing: ${timingScore}% | Position: ${positionScore}% | Angle: ${angleScore}%`
-    );
-
-    const hudColor = totalScore > 65 ? '#00F5D4' : (totalScore > 40 ? '#FFD700' : '#FFA000');
-    this.factorsHudText.setColor(hudColor);
-
-    // Announcer dynamic text
-    if (playerDist < 100) {
-      this.commentatorText.setText(`🎙️ "வீரர் #07 திமிலை பற்ற மிக அருகில் வந்துவிட்டார்!"`);
-    }
-
-    // Proximity Rings
-    this.proximityRing.clear();
-    const ringColor = playerDist < 90 ? 0x00ff88 : (playerDist < 160 ? 0xffbb00 : 0xff4444);
-    this.proximityRing.lineStyle(3, ringColor, 0.75);
-    this.proximityRing.strokeCircle(this.bull.x, this.bull.y, 80);
-    this.proximityRing.lineStyle(1.5, ringColor, 0.5);
-    this.proximityRing.lineBetween(this.player.x, this.player.y, this.bull.x, this.bull.y);
-
-    // Timer
+    // --- 4. TIMER & RESOLUTION ---
     this.phaseTimer -= delta;
-    const secondsLeft = Math.max(0, Math.ceil(this.phaseTimer / 1000));
-    this.countdownText.setText(`FLANK THE HUMP FROM THE SIDE! (${secondsLeft}s)`);
-
     if (this.phaseTimer <= 0) {
-      this.resolveProximityPhase();
+      this.resolveProximityPhase(false);
     }
   }
 
-  private resolveProximityPhase() {
+  private resolveProximityPhase(manualGrab = false) {
     this.isPhaseActive = false;
     const { width, height } = this.scale;
 
-    let bestAIScore = 0;
-    let closestAIName = 'Velan';
-    let closestAIBib = 18;
-
-    this.aiCompetitors.forEach((ai) => {
-      if (ai.totalScore > bestAIScore) {
-        bestAIScore = ai.totalScore;
-        closestAIName = ai.name;
-        closestAIBib = ai.bibNumber;
-      }
-    });
-
-    const playerTotal = this.playerScores.total;
-    const playerWon = (playerTotal >= bestAIScore - 15) || (this.playerScores.distance > 60) || (this.retryCount >= 2);
+    const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.bull.x, this.bull.y);
+    const playerWon = manualGrab || dist < 140 || this.retryCount >= 2;
 
     if (playerWon) {
       soundManager.playCrowdCheer(4);
       soundManager.playGripSuccess(2);
 
       const banner = this.add.container(width / 2, height / 2);
-      const bg = this.add.rectangle(0, 0, 470, 124, 0x120b09, 0.95);
+      const bg = this.add.rectangle(0, 0, 470, 120, 0x120b09, 0.95);
       bg.setStrokeStyle(3, 0x00f5d4);
       const txt1 = this.add.text(0, -26, 'வீரர் #07: பிடி கிடைத்தது! GRIP SECURED!', {
         fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
@@ -440,7 +361,7 @@ export class ArenaScene extends Phaser.Scene {
         color: '#00F5D4',
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      const txt2 = this.add.text(0, 6, `Participant #07 won opportunity at ${this.village.name} (${Math.max(playerTotal, 78)}% score)`, {
+      const txt2 = this.add.text(0, 6, `You matched speed & flanked the ${this.personality.badge} bull!`, {
         fontFamily: "'Outfit', sans-serif",
         fontSize: '13px',
         color: '#FFD700',
@@ -480,18 +401,18 @@ export class ArenaScene extends Phaser.Scene {
       const banner = this.add.container(width / 2, height / 2);
       const bg = this.add.rectangle(0, 0, 480, 130, 0x120b09, 0.95);
       bg.setStrokeStyle(3, 0xf77f00);
-      const txt1 = this.add.text(0, -30, 'வேகம் போதவில்லை! TOO FAR / OFF-ANGLE!', {
+      const txt1 = this.add.text(0, -30, 'வேகம் போதவில்லை! TOO FAR!', {
         fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
         fontSize: '20px',
         color: '#F77F00',
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      const txt2 = this.add.text(0, 2, `Participant #${closestAIBib} (${closestAIName}) had a closer flank (${bestAIScore}% vs ${playerTotal}%)!`, {
+      const txt2 = this.add.text(0, 2, `Participant #01 (MURUGAN) was closer! Repositioning...`, {
         fontFamily: "'Outfit', sans-serif",
         fontSize: '12px',
         color: '#FFFFFF',
       }).setOrigin(0.5);
-      const txt3 = this.add.text(0, 28, `Attempt ${this.retryCount + 1}/3 • Repositioning for next charge!`, {
+      const txt3 = this.add.text(0, 28, `Attempt ${this.retryCount + 1}/3 • Sprint & press [DIVE] / [GRAB]!`, {
         fontFamily: "'Outfit', sans-serif",
         fontSize: '13px',
         color: '#FFD700',
