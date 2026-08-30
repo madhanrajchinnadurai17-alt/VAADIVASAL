@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { soundManager } from '../../utils/soundSynthesizer';
 import { BullPersonality, getRandomBullPersonality } from '../bullPersonality';
+import { VillageEvent, TAMIL_VILLAGES } from '../villageSystem';
 
 export interface GameResultData {
   success: boolean;
@@ -10,6 +11,20 @@ export interface GameResultData {
   attemptsUsed: number;
   title: string;
   bullPersonality: string;
+  villageName: string;
+  villageTamilName: string;
+  wonPrize?: {
+    name: string;
+    tamilName: string;
+    icon: string;
+    value: number;
+  };
+  ownerReward?: {
+    name: string;
+    tamilName: string;
+    icon: string;
+    reputationBonus: number;
+  };
 }
 
 export class TamingScene extends Phaser.Scene {
@@ -19,9 +34,10 @@ export class TamingScene extends Phaser.Scene {
   private targetZone!: Phaser.GameObjects.Rectangle;
   private needle!: Phaser.GameObjects.Rectangle;
   private personality!: BullPersonality;
+  private village!: VillageEvent;
 
   // Minigame State
-  private needlePos = 0; // -1 to 1
+  private needlePos = 0;
   private needleSpeed = 1.3;
   private needleDirection = 1;
   private currentStage = 0;
@@ -33,12 +49,10 @@ export class TamingScene extends Phaser.Scene {
   private stageCounterText!: Phaser.GameObjects.Text;
   private isRoundOver = false;
 
-  // Scoring
   private reactionTimes: number[] = [];
   private lastTriggerTime = 0;
   private attemptsUsed = 1;
 
-  // Particles
   private dustEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
   private marigoldEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -46,16 +60,17 @@ export class TamingScene extends Phaser.Scene {
     super({ key: 'TamingScene' });
   }
 
-  init(data: { attempts?: number; personality?: BullPersonality }) {
+  init(data: { attempts?: number; personality?: BullPersonality; village?: VillageEvent }) {
     this.attemptsUsed = data.attempts || 1;
     this.personality = data.personality || getRandomBullPersonality();
+    this.village = data.village || TAMIL_VILLAGES[0];
     this.currentStage = 0;
     this.targetStages = this.personality.targetStages;
     this.stamina = 100;
     this.reactionTimes = [];
     this.isRoundOver = false;
     this.needlePos = 0;
-    this.needleSpeed = 1.3 * this.personality.needleSpeedMultiplier;
+    this.needleSpeed = 1.3 * this.personality.needleSpeedMultiplier * this.village.difficultyMultiplier;
   }
 
   create() {
@@ -63,12 +78,12 @@ export class TamingScene extends Phaser.Scene {
     this.cameras.main.fadeIn(400, 18, 11, 9);
     soundManager.startFestiveDrums(155);
 
-    // Arena dust background
+    // Arena dust background with village ground tint
     const bg = this.add.tileSprite(width / 2, height / 2, width, height, 'arena_ground');
-    bg.setTint(0xcc9966);
+    bg.setTint(this.village.arenaTheme.groundTint);
 
     // Cheering Crowd in background
-    this.add.image(width / 2, 80, 'crowd_silhouette').setScale(1.4, 1).setAlpha(0.65);
+    this.add.image(width / 2, 80, 'crowd_silhouette').setScale(1.4, 1).setAlpha(0.7);
 
     // Dust particles
     this.dustEmitter = this.add.particles(0, 0, 'particle_dust', {
@@ -89,18 +104,17 @@ export class TamingScene extends Phaser.Scene {
       emitting: false,
     });
 
-    // Central Bull Sprite (Side Profile)
+    // Central Bull Sprite
     const centerX = width / 2;
     const centerY = height * 0.48;
 
     this.bullSprite = this.add.image(centerX + 30, centerY, 'bull_side');
     this.bullSprite.setScale(1.15);
 
-    // Tamer gripping the Hump (திமில்)
+    // Tamer (Bib #07) gripping the Hump
     this.tamerSprite = this.add.image(centerX - 10, centerY - 25, 'player_top');
     this.tamerSprite.setScale(1.3).setAngle(-25);
 
-    // Idle galloping bobbing tween
     this.tweens.add({
       targets: [this.bullSprite, this.tamerSprite],
       y: '+=14',
@@ -110,12 +124,11 @@ export class TamingScene extends Phaser.Scene {
       ease: 'Sine.easeInOut',
     });
 
-    // --- TIMING / RHYTHM BAR HUD ---
+    // TIMING BAR HUD
     const hudY = height - 110;
     const barWidth = Math.min(width - 60, 480);
     const barHeight = 28;
 
-    // Bar Container Background
     const hudContainer = this.add.container(centerX, hudY);
     const hudBg = this.add.rectangle(0, 0, barWidth + 30, 104, 0x120b09, 0.9);
     hudBg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(this.personality.color).color);
@@ -123,29 +136,25 @@ export class TamingScene extends Phaser.Scene {
     this.barBg = this.add.rectangle(0, 5, barWidth, barHeight, 0x2b1e19);
     this.barBg.setStrokeStyle(2, 0x8d5524);
 
-    // Green Grip Target Zone
     const baseW = Math.round(120 * this.personality.targetZoneMultiplier);
     this.targetZone = this.add.rectangle(0, 5, baseW, barHeight - 4, 0x2ec4b6, 0.9);
     this.targetZone.setStrokeStyle(2, 0x00f5d4);
 
-    // Moving Needle Indicator
     this.needle = this.add.rectangle(0, 5, 8, barHeight + 12, 0xffd700);
     this.needle.setStrokeStyle(1.5, 0xffffff);
 
-    // Stage Counter Header with Bull Personality
     this.stageCounterText = this.add.text(
       0,
       -32,
-      `BULL: ${this.personality.badge} | GRIP LOCK: 0 / ${this.targetStages} (திமில் பிடி)`,
+      `PARTICIPANT #07 | ${this.village.name.toUpperCase()} | GRIP LOCK: 0 / ${this.targetStages}`,
       {
         fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
-        fontSize: '16px',
+        fontSize: '15px',
         color: this.personality.color,
         fontStyle: 'bold',
       }
     ).setOrigin(0.5);
 
-    // Action Instruction
     const actionText = this.add.text(0, 32, 'PRESS [SPACE] OR CLICK / TAP WHEN NEEDLE IS IN THE GREEN ZONE!', {
       fontFamily: "'Outfit', sans-serif",
       fontSize: '12px',
@@ -155,7 +164,6 @@ export class TamingScene extends Phaser.Scene {
 
     hudContainer.add([hudBg, this.barBg, this.targetZone, this.needle, this.stageCounterText, actionText]);
 
-    // Feedback Floating Text
     this.feedbackText = this.add.text(centerX, centerY - 110, '', {
       fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
       fontSize: '28px',
@@ -165,10 +173,8 @@ export class TamingScene extends Phaser.Scene {
       strokeThickness: 5,
     }).setOrigin(0.5).setAlpha(0);
 
-    // Top Stamina Bar
     this.createStaminaBar(centerX, 35, width);
 
-    // User Input Listeners
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-SPACE', () => this.handleTameAttempt());
     }
@@ -197,14 +203,12 @@ export class TamingScene extends Phaser.Scene {
   }
 
   private updateTargetZoneWidth() {
-    // Green zone shrinks with each consecutive grip stage and scales by personality
     const baseWidths = [130, 100, 75, 55, 45];
     const rawW = baseWidths[Math.min(this.currentStage, baseWidths.length - 1)];
     const newW = Math.round(rawW * this.personality.targetZoneMultiplier);
     this.targetZone.setSize(newW, 24);
 
-    // Needle gets faster per stage and by personality multiplier
-    this.needleSpeed = (1.3 + this.currentStage * 0.35) * this.personality.needleSpeedMultiplier;
+    this.needleSpeed = (1.3 + this.currentStage * 0.35) * this.personality.needleSpeedMultiplier * this.village.difficultyMultiplier;
   }
 
   update(time: number, delta: number) {
@@ -212,7 +216,6 @@ export class TamingScene extends Phaser.Scene {
 
     const dt = delta / 1000;
 
-    // Oscillate Needle
     this.needlePos += this.needleDirection * this.needleSpeed * dt * 2;
     if (this.needlePos >= 1) {
       this.needlePos = 1;
@@ -222,11 +225,9 @@ export class TamingScene extends Phaser.Scene {
       this.needleDirection = 1;
     }
 
-    // Update needle visual X coordinate
     const halfWidth = (this.barBg.width - 20) / 2;
     this.needle.x = this.needlePos * halfWidth;
 
-    // Passive stamina drain (scales slightly with personality resistance)
     this.stamina -= dt * (6.5 * this.personality.staminaResistance);
     this.updateStaminaDisplay();
 
@@ -263,7 +264,6 @@ export class TamingScene extends Phaser.Scene {
     const isHit = Math.abs(currentNeedleX - this.targetZone.x) <= targetHalfW;
 
     if (isHit) {
-      // SUCCESSFUL HIT
       this.currentStage++;
       soundManager.playGripSuccess(this.currentStage);
       this.dustEmitter.emitParticleAt(this.bullSprite.x, this.bullSprite.y + 40, 6);
@@ -280,7 +280,7 @@ export class TamingScene extends Phaser.Scene {
       this.showFeedback(text, '#00F5D4');
 
       this.stageCounterText.setText(
-        `BULL: ${this.personality.badge} | GRIP LOCK: ${this.currentStage} / ${this.targetStages} (திமில் பிடி)`
+        `PARTICIPANT #07 | ${this.village.name.toUpperCase()} | GRIP LOCK: ${this.currentStage} / ${this.targetStages}`
       );
 
       this.stamina = Math.min(this.maxStamina, this.stamina + 12);
@@ -292,7 +292,6 @@ export class TamingScene extends Phaser.Scene {
       }
 
     } else {
-      // MISS / RESISTANCE BUCK
       soundManager.playGripMiss();
       soundManager.playBullSnort();
       this.cameras.main.shake(250, 0.008);
@@ -315,8 +314,6 @@ export class TamingScene extends Phaser.Scene {
       });
 
       this.dustEmitter.emitParticleAt(this.bullSprite.x - 20, this.bullSprite.y + 30, 4);
-
-      // Penalty stamina drain adjusted by personality resistance
       this.stamina -= 16 * this.personality.staminaResistance;
       this.showFeedback('விலகியது! PULL BACK!', '#F77F00');
     }
@@ -349,7 +346,7 @@ export class TamingScene extends Phaser.Scene {
     const avgReaction = this.reactionTimes.length > 0
       ? Math.round(this.reactionTimes.reduce((a, b) => a + b, 0) / this.reactionTimes.length)
       : 320;
-    const finalScore = Math.round((1000 / (avgReaction / 100)) * 10 + (this.stamina * 8));
+    const finalScore = Math.round((1000 / (avgReaction / 100)) * 10 + (this.stamina * 8) + (this.village.prize.value / 10));
 
     const resultData: GameResultData = {
       success: true,
@@ -357,8 +354,11 @@ export class TamingScene extends Phaser.Scene {
       avgReactionTimeMs: avgReaction,
       gripsAchieved: this.currentStage,
       attemptsUsed: this.attemptsUsed,
-      title: `வீரத் தமிழன் (${this.personality.badge} Bull Master)`,
+      title: `வெற்றி வீரர் #07 (${this.village.tamilName} Champion)`,
       bullPersonality: `${this.personality.badge} (${this.personality.tamilName})`,
+      villageName: this.village.name,
+      villageTamilName: this.village.tamilName,
+      wonPrize: this.village.prize,
     };
 
     this.time.delayedCall(1200, () => {
@@ -390,6 +390,9 @@ export class TamingScene extends Phaser.Scene {
       attemptsUsed: this.attemptsUsed,
       title: `துணிச்சலான முயற்சி (vs ${this.personality.badge})`,
       bullPersonality: `${this.personality.badge} (${this.personality.tamilName})`,
+      villageName: this.village.name,
+      villageTamilName: this.village.tamilName,
+      ownerReward: this.village.ownerReward,
     };
 
     this.showFeedback('காளை தப்பியது! THE BULL ESCAPED!', '#FFA000');

@@ -3,11 +3,20 @@ import { GameResultData } from '../game/scenes/TamingScene';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Hand } from 'lucide-react';
 
 interface GameContainerProps {
+  initialScene?: 'ReleaseScene' | 'TrainingPondScene' | 'TrainingFieldScene' | 'VillageTravelScene';
+  sceneData?: Record<string, any>;
   onGameFinished: (result: GameResultData) => void;
+  onTrainingFinished?: (reward: any) => void;
   onExitToMenu: () => void;
 }
 
-export const GameContainer: React.FC<GameContainerProps> = ({ onGameFinished, onExitToMenu }) => {
+export const GameContainer: React.FC<GameContainerProps> = ({
+  initialScene = 'ReleaseScene',
+  sceneData = {},
+  onGameFinished,
+  onTrainingFinished,
+  onExitToMenu,
+}) => {
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserInstance = useRef<Phaser.Game | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -26,12 +35,29 @@ export const GameContainer: React.FC<GameContainerProps> = ({ onGameFinished, on
       const config = createGameConfig(gameRef.current);
       const game = new Phaser.Game(config);
       phaserInstance.current = game;
+
+      // Start custom initial scene if not default ReleaseScene
+      game.events.once('ready', () => {
+        if (initialScene !== 'ReleaseScene') {
+          game.scene.start(initialScene, sceneData);
+        } else if (Object.keys(sceneData).length > 0) {
+          game.scene.start('ReleaseScene', sceneData);
+        }
+      });
+
       setIsLoaded(true);
 
       // Listen for game finished event
       game.events.on('game-finished', (data: GameResultData) => {
         if (isMounted) {
           onGameFinished(data);
+        }
+      });
+
+      // Listen for training finished event
+      game.events.on('training-finished', (reward: any) => {
+        if (isMounted && onTrainingFinished) {
+          onTrainingFinished(reward);
         }
       });
     };
@@ -45,9 +71,8 @@ export const GameContainer: React.FC<GameContainerProps> = ({ onGameFinished, on
         phaserInstance.current = null;
       }
     };
-  }, [onGameFinished]);
+  }, [initialScene, sceneData, onGameFinished, onTrainingFinished]);
 
-  // Touch button emulator for mobile users
   const triggerKeyEvent = (key: string, type: 'keydown' | 'keyup') => {
     const event = new KeyboardEvent(type, { key, code: key === ' ' ? 'Space' : `Key${key.toUpperCase()}`, bubbles: true });
     window.dispatchEvent(event);
@@ -59,14 +84,14 @@ export const GameContainer: React.FC<GameContainerProps> = ({ onGameFinished, on
       <div className="w-full flex items-center justify-between px-2 py-2 mb-2 text-xs text-tamil-sand/80">
         <button
           onClick={onExitToMenu}
-          className="px-3 py-1 bg-black/40 hover:bg-tamil-saffron/20 border border-tamil-saffron/30 rounded-lg text-tamil-gold transition-colors"
+          className="px-3 py-1 bg-black/40 hover:bg-tamil-saffron/20 border border-tamil-saffron/30 rounded-lg text-tamil-gold transition-colors font-bold"
         >
-          ← Village Menu
+          ← Main Menu (முகப்பு)
         </button>
         <div className="hidden sm:flex items-center space-x-3 text-xs">
           <span>Move: <strong className="text-tamil-gold">WASD / Arrow Keys</strong></span>
           <span>•</span>
-          <span>Tame: <strong className="text-tamil-gold">SPACE / Click</strong></span>
+          <span>Action: <strong className="text-tamil-gold">SPACE / Click</strong></span>
         </div>
       </div>
 
@@ -76,16 +101,15 @@ export const GameContainer: React.FC<GameContainerProps> = ({ onGameFinished, on
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-tamil-night z-20 space-y-3">
             <div className="w-10 h-10 border-4 border-tamil-saffron border-t-transparent rounded-full animate-spin" />
             <p className="text-tamil-sand font-bold text-sm tracking-wide">
-              வாடிவாசல் தயாராகிறது... Preparing Arena...
+              வாடிவாசல் தயாராகிறது... Preparing Simulation...
             </p>
           </div>
         )}
         <div id="phaser-game-canvas" ref={gameRef} className="w-full h-full" />
       </div>
 
-      {/* Mobile / On-screen Helper Controls (Visible on smaller screens or for mouse users) */}
+      {/* Mobile Touch D-Pad & Action Button */}
       <div className="flex items-center justify-between w-full max-w-xl mt-4 px-3 py-2 bg-black/40 border border-tamil-saffron/20 rounded-xl sm:hidden">
-        {/* Direction D-Pad */}
         <div className="grid grid-cols-3 gap-1 w-28">
           <div />
           <button
@@ -127,7 +151,6 @@ export const GameContainer: React.FC<GameContainerProps> = ({ onGameFinished, on
           </button>
         </div>
 
-        {/* Big Tap / Tame Grip Button */}
         <button
           onTouchStart={() => triggerKeyEvent(' ', 'keydown')}
           onTouchEnd={() => triggerKeyEvent(' ', 'keyup')}
@@ -136,7 +159,7 @@ export const GameContainer: React.FC<GameContainerProps> = ({ onGameFinished, on
           className="flex items-center space-x-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-black text-xs rounded-xl shadow-lg active:scale-95 border border-emerald-300"
         >
           <Hand className="w-4 h-4" />
-          <span>GRIP HUMP (SPACE)</span>
+          <span>ACTION (SPACE)</span>
         </button>
       </div>
     </div>

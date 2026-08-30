@@ -3,6 +3,9 @@ import { BootScene } from './scenes/BootScene';
 import { ReleaseScene } from './scenes/ReleaseScene';
 import { ArenaScene } from './scenes/ArenaScene';
 import { TamingScene } from './scenes/TamingScene';
+import { TrainingPondScene } from './scenes/TrainingPondScene';
+import { TrainingFieldScene } from './scenes/TrainingFieldScene';
+import { VillageTravelScene } from './scenes/VillageTravelScene';
 
 export function createGameConfig(parent: HTMLElement): Phaser.Types.Core.GameConfig {
   return {
@@ -22,6 +25,14 @@ export function createGameConfig(parent: HTMLElement): Phaser.Types.Core.GameCon
         debug: false,
       },
     },
-    scene: [BootScene, ReleaseScene, ArenaScene, TamingScene],
+    scene: [
+      BootScene,
+      ReleaseScene,
+      ArenaScene,
+      TamingScene,
+      TrainingPondScene,
+      TrainingFieldScene,
+      VillageTravelScene,
+    ],
   };
 }

@@ -13,7 +13,11 @@ export class TextureGenerator {
     this.generateCrowdSilhouette(scene);
     this.generateDustParticle(scene);
     this.generateMarigoldParticle(scene);
+    this.generateWaterParticle(scene);
     this.generateArenaGround(scene);
+    this.generatePondTile(scene);
+    this.generateFieldObstacle(scene);
+    this.generateVillageLandscape(scene);
   }
 
   // Top-down Bull texture (muscular black/charcoal Kangayam bull with prominent hump and sharp horns)
@@ -61,14 +65,12 @@ export class TextureGenerator {
 
     // Sharp Curved Horns (Kangayam trademark)
     g.lineStyle(5, 0xefd8a1, 1);
-    // Left horn
     g.beginPath();
     g.moveTo(52, 20);
     g.lineTo(32, 12);
     g.lineTo(30, -2);
     g.strokePath();
 
-    // Right horn
     g.beginPath();
     g.moveTo(68, 20);
     g.lineTo(88, 12);
@@ -89,10 +91,8 @@ export class TextureGenerator {
 
     // Legs / Hooves
     g.fillStyle(0x1a1a1a, 1);
-    // Front hooves
     g.fillRoundedRect(36, 32, 8, 16, 3);
     g.fillRoundedRect(76, 32, 8, 16, 3);
-    // Rear hooves
     g.fillRoundedRect(34, 76, 9, 20, 3);
     g.fillRoundedRect(77, 76, 9, 20, 3);
 
@@ -109,13 +109,12 @@ export class TextureGenerator {
     g.destroy();
   }
 
-  // Side view of Bull for Minigame
+  // Side view of Bull for Minigame & Realistic Entrance
   private static generateBullSide(scene: Phaser.Scene) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     const width = 340;
     const height = 240;
 
-    // Muscular side profile
     // Shadow
     g.fillStyle(0x000000, 0.4);
     g.fillEllipse(170, 220, 160, 35);
@@ -133,7 +132,6 @@ export class TextureGenerator {
     g.fillEllipse(190, 80, 48, 42);
     g.fillStyle(0x3a3a3a, 0.9);
     g.fillEllipse(188, 75, 34, 30);
-    // Target glow outline on hump
     g.lineStyle(3, 0xffd700, 0.7);
     g.strokeEllipse(190, 80, 48, 42);
 
@@ -195,37 +193,40 @@ export class TextureGenerator {
     g.destroy();
   }
 
-  // Player top-down sprite (Valorous Tamil Tamer)
+  // Player top-down sprite with visible Bib Number (#07)
   private static generatePlayerTop(scene: Phaser.Scene) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     const size = 64;
 
-    // Shadow
     g.fillStyle(0x000000, 0.35);
     g.fillEllipse(32, 38, 22, 28);
 
-    // Bare athletic brown torso (Sun-kissed Tamil youth)
+    // Sun-kissed Tamil athletic torso
     g.fillStyle(0x8d5524, 1);
     g.fillEllipse(32, 30, 20, 24);
 
-    // Traditional red/saffron kacham (shorts)
+    // Red/saffron kacham with visible #07
     g.fillStyle(0xd90429, 1);
     g.fillRoundedRect(22, 34, 20, 14, 3);
     g.fillStyle(0xf77f00, 1);
-    g.fillRect(22, 33, 20, 3); // Gold waist belt
+    g.fillRect(22, 33, 20, 3);
+
+    // Bib Number badge on back
+    g.fillStyle(0xffffff, 0.9);
+    g.fillCircle(32, 29, 5);
+    g.fillStyle(0x000000, 1);
+    g.fillRect(30, 27, 4, 4);
 
     // Head
     g.fillStyle(0x703d15, 1);
     g.fillCircle(32, 18, 9);
-    // Yellow festival headband (தலைப்பாகை)
+    // Headband
     g.fillStyle(0xffd700, 1);
     g.fillRect(23, 14, 18, 4);
 
-    // Outstretched grasping arms (ready to grip hump)
+    // Arms
     g.fillStyle(0x8d5524, 1);
-    // Left arm
     g.fillRoundedRect(12, 16, 7, 18, 3);
-    // Right arm
     g.fillRoundedRect(45, 16, 7, 18, 3);
 
     // Hands
@@ -233,7 +234,7 @@ export class TextureGenerator {
     g.fillCircle(15, 14, 4);
     g.fillCircle(49, 14, 4);
 
-    // Player indicator star/chevron
+    // Player indicator
     g.fillStyle(0x00f5d4, 1);
     g.fillTriangle(32, 0, 26, 7, 38, 7);
 
@@ -241,35 +242,33 @@ export class TextureGenerator {
     g.destroy();
   }
 
-  // AI Tamers (different colors)
+  // AI Tamers with distinct jersey numbers (#18, #24, #31, #42)
   private static generateAITamersTop(scene: Phaser.Scene) {
-    const colors = [0x2a9d8f, 0x3a86ff, 0x8338ec, 0xf4a261];
+    const colors = [0x2a9d8f, 0x3a86ff, 0x8338ec, 0xf4a261, 0x06d6a0, 0xef476f];
     
     colors.forEach((color, idx) => {
       const g = scene.make.graphics({ x: 0, y: 0 });
       const size = 64;
 
-      // Shadow
       g.fillStyle(0x000000, 0.3);
       g.fillEllipse(32, 38, 20, 26);
 
-      // Torso
       g.fillStyle(0x7d4b1f, 1);
       g.fillEllipse(32, 30, 19, 23);
 
-      // AI Shorts
       g.fillStyle(color, 1);
       g.fillRoundedRect(23, 34, 18, 13, 3);
 
-      // Head
+      // AI Bib circle
+      g.fillStyle(0xffffff, 0.85);
+      g.fillCircle(32, 29, 4.5);
+
       g.fillStyle(0x653b17, 1);
       g.fillCircle(32, 18, 8.5);
 
-      // White headband
       g.fillStyle(0xffffff, 0.9);
       g.fillRect(24, 14, 16, 3);
 
-      // Arms
       g.fillStyle(0x7d4b1f, 1);
       g.fillRoundedRect(14, 18, 6, 16, 3);
       g.fillRoundedRect(44, 18, 6, 16, 3);
@@ -285,42 +284,35 @@ export class TextureGenerator {
     const width = 280;
     const height = 260;
 
-    // Stone / Ancient Brick Pillars
     g.fillStyle(0x8B4513, 1);
     g.fillRect(10, 30, 50, 230);
     g.fillRect(220, 30, 50, 230);
 
-    // Carved Pillar Details
     g.fillStyle(0xA0522D, 1);
     for (let y = 40; y < 250; y += 30) {
       g.fillRect(15, y, 40, 10);
       g.fillRect(225, y, 40, 10);
     }
 
-    // Top Beam Arch
     g.fillStyle(0x65320D, 1);
     g.fillRect(5, 15, 270, 30);
-    g.fillStyle(0xDAA520, 1); // Gold Trim
+    g.fillStyle(0xDAA520, 1);
     g.fillRect(5, 10, 270, 5);
 
-    // Mango Leaf & Marigold Garland (Thoranam)
+    // Thoranam
     for (let x = 20; x < 260; x += 18) {
-      // Leaf
       g.fillStyle(0x2d6a4f, 1);
       g.fillTriangle(x, 45, x + 8, 45, x + 4, 62);
-      // Marigold flower
       g.fillStyle(0xffa200, 1);
       g.fillCircle(x + 4, 45, 5);
     }
 
-    // Heavy Wooden Gate Doors (split in center)
-    // Left Door
+    // Heavy Doors
     g.fillStyle(0x4A2511, 1);
     g.fillRect(60, 45, 78, 205);
-    // Right Door
     g.fillRect(142, 45, 78, 205);
 
-    // Brass Studs on Gates
+    // Brass Studs
     g.fillStyle(0xffd700, 1);
     for (let gy = 60; gy < 240; gy += 35) {
       g.fillCircle(75, gy, 5);
@@ -329,7 +321,6 @@ export class TextureGenerator {
       g.fillCircle(200, gy, 5);
     }
 
-    // Center latch
     g.fillStyle(0xc0c0c0, 1);
     g.fillRect(130, 130, 20, 14);
 
@@ -345,20 +336,17 @@ export class TextureGenerator {
 
     g.fillStyle(0x1a0f0a, 0.95);
     
-    // Tiered Dravidian Gopuram structure
     let currentW = 160;
     let y = 240;
     for (let tier = 0; tier < 7; tier++) {
       const h = 24;
       y -= h;
       g.fillRect((width - currentW) / 2, y, currentW, h);
-      // Kalasam crest decorations
       g.fillRect((width - currentW) / 2 - 4, y, 6, 8);
       g.fillRect((width + currentW) / 2 - 2, y, 6, 8);
       currentW -= 18;
     }
 
-    // Top Kalasams (Sacred finials)
     g.fillStyle(0xffd700, 0.8);
     for (let k = -20; k <= 20; k += 10) {
       g.fillTriangle(width / 2 + k - 3, y, width / 2 + k + 3, y, width / 2 + k, y - 18);
@@ -377,13 +365,11 @@ export class TextureGenerator {
 
     g.fillStyle(0x190c07, 0.9);
 
-    // Random heads and raised cheering hands
     for (let x = 10; x < 390; x += 12) {
       const headY = 40 + Math.sin(x * 0.1) * 8 + (x % 5);
       g.fillCircle(x, headY, 9);
       g.fillRect(x - 8, headY + 8, 16, 45);
 
-      // Raised arms
       if (x % 24 === 0) {
         g.fillRect(x - 12, headY - 14, 5, 20);
         g.fillCircle(x - 10, headY - 14, 3);
@@ -393,7 +379,6 @@ export class TextureGenerator {
       }
     }
 
-    // Festival banners in crowd
     g.fillStyle(0xd90429, 0.85);
     g.fillTriangle(60, 10, 80, 20, 60, 30);
     g.fillStyle(0xffa200, 0.85);
@@ -427,16 +412,25 @@ export class TextureGenerator {
     g.destroy();
   }
 
+  // Water Splash Particle
+  private static generateWaterParticle(scene: Phaser.Scene) {
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    g.fillStyle(0x70d6ff, 0.85);
+    g.fillCircle(6, 6, 5);
+    g.fillStyle(0xffffff, 0.7);
+    g.fillCircle(5, 5, 2.5);
+    g.generateTexture('particle_water', 12, 12);
+    g.destroy();
+  }
+
   // Arena Sand Ground Texture
   private static generateArenaGround(scene: Phaser.Scene) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     const size = 512;
 
-    // Sand background
     g.fillStyle(0xccaa7d, 1);
     g.fillRect(0, 0, size, size);
 
-    // Sand grains & variation
     g.fillStyle(0xbfa070, 0.5);
     for (let i = 0; i < 300; i++) {
       const rx = Math.random() * size;
@@ -445,15 +439,75 @@ export class TextureGenerator {
       g.fillCircle(rx, ry, r);
     }
 
-    g.fillStyle(0xddbc8d, 0.5);
-    for (let i = 0; i < 200; i++) {
-      const rx = Math.random() * size;
-      const ry = Math.random() * size;
-      const r = 1 + Math.random() * 2;
-      g.fillCircle(rx, ry, r);
+    g.generateTexture('arena_ground', size, size);
+    g.destroy();
+  }
+
+  // Pond Water Tile for Training Mode
+  private static generatePondTile(scene: Phaser.Scene) {
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    const size = 512;
+
+    g.fillStyle(0x1d4ed8, 0.85);
+    g.fillRect(0, 0, size, size);
+
+    // Water ripples
+    g.lineStyle(2, 0x60a5fa, 0.6);
+    for (let y = 20; y < size; y += 35) {
+      g.beginPath();
+      g.moveTo(0, y);
+      for (let x = 0; x < size; x += 40) {
+        g.lineTo(x + 20, y + Math.sin(x * 0.1) * 8);
+      }
+      g.strokePath();
     }
 
-    g.generateTexture('arena_ground', size, size);
+    g.generateTexture('pond_water', size, size);
+    g.destroy();
+  }
+
+  // Obstacle for Sand-Field Training
+  private static generateFieldObstacle(scene: Phaser.Scene) {
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    const size = 64;
+
+    // Straw bale
+    g.fillStyle(0xd97706, 1);
+    g.fillRoundedRect(8, 12, 48, 40, 6);
+    g.lineStyle(2, 0x78350f, 0.9);
+    g.strokeLineShape(new Phaser.Geom.Line(10, 24, 54, 24));
+    g.strokeLineShape(new Phaser.Geom.Line(10, 38, 54, 38));
+
+    g.generateTexture('field_obstacle', size, size);
+    g.destroy();
+  }
+
+  // Rural Tamil Nadu Landscape Panoramic
+  private static generateVillageLandscape(scene: Phaser.Scene) {
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    const w = 800;
+    const h = 520;
+
+    // Green paddy fields
+    g.fillStyle(0x166534, 1);
+    g.fillRect(0, 240, w, 280);
+
+    // Coconut trees along the horizon
+    for (let x = 30; x < w; x += 65) {
+      // Trunk
+      g.fillStyle(0x78350f, 1);
+      g.fillRect(x, 150, 8, 110);
+      // Leaves
+      g.fillStyle(0x15803d, 1);
+      g.fillEllipse(x + 4, 145, 45, 24);
+      g.fillEllipse(x + 4, 140, 32, 28);
+    }
+
+    // Village mud road
+    g.fillStyle(0xc2410c, 0.85);
+    g.fillTriangle(w / 2, 240, 100, h, 700, h);
+
+    g.generateTexture('village_landscape', w, h);
     g.destroy();
   }
 }
