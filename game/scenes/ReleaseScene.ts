@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../../utils/soundSynthesizer';
+import { BullPersonality, getRandomBullPersonality } from '../bullPersonality';
 
 export class ReleaseScene extends Phaser.Scene {
   private gate!: Phaser.GameObjects.Image;
@@ -7,9 +8,14 @@ export class ReleaseScene extends Phaser.Scene {
   private leftGateDoor!: Phaser.GameObjects.Rectangle;
   private rightGateDoor!: Phaser.GameObjects.Rectangle;
   private dustEmitter!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private personality!: BullPersonality;
 
   constructor() {
     super({ key: 'ReleaseScene' });
+  }
+
+  init(data: { personality?: BullPersonality }) {
+    this.personality = data.personality || getRandomBullPersonality();
   }
 
   create() {
@@ -34,12 +40,12 @@ export class ReleaseScene extends Phaser.Scene {
     ground.setTint(0xc49a6c);
 
     // Cheering Crowd silhouettes
-    const crowdLeft = this.add.image(width * 0.25, height - 140, 'crowd_silhouette').setScale(1.1);
-    const crowdRight = this.add.image(width * 0.75, height - 140, 'crowd_silhouette').setScale(1.1);
+    this.add.image(width * 0.25, height - 140, 'crowd_silhouette').setScale(1.1);
+    this.add.image(width * 0.75, height - 140, 'crowd_silhouette').setScale(1.1);
 
     // Festive Marigold flower particle rain
     if (this.add.particles) {
-      const marigoldParticles = this.add.particles(0, 0, 'particle_marigold', {
+      this.add.particles(0, 0, 'particle_marigold', {
         x: { min: 0, max: width },
         y: -20,
         lifespan: 3500,
@@ -76,27 +82,33 @@ export class ReleaseScene extends Phaser.Scene {
     this.dustEmitter = dustParticles;
 
     // Cinematic Text Overlay
-    const titleText = this.add.text(width / 2, 65, 'வாடிவாசல் திறப்பு | THE RELEASE', {
+    const titleText = this.add.text(width / 2, 45, 'வாடிவாசல் திறப்பு | THE RELEASE', {
       fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
-      fontSize: '26px',
+      fontSize: '24px',
       color: '#FFD700',
       fontStyle: 'bold',
       stroke: '#000000',
       strokeThickness: 5,
     }).setOrigin(0.5).setAlpha(0);
 
-    const subText = this.add.text(width / 2, 100, 'The Kangayam bull enters the sacred arena...', {
+    // Bull Personality Card Banner
+    const personalityBanner = this.add.container(width / 2, 85);
+    const pBg = this.add.rectangle(0, 0, 420, 36, 0x120b09, 0.9);
+    pBg.setStrokeStyle(1.5, Phaser.Display.Color.HexStringToColor(this.personality.color).color);
+    
+    const pText = this.add.text(0, 0, `TEMPERAMENT: ${this.personality.badge} • ${this.personality.tamilName}`, {
       fontFamily: "'Outfit', sans-serif",
-      fontSize: '16px',
-      color: '#FFFFFF',
-      fontStyle: '600',
-      stroke: '#000000',
-      strokeThickness: 3,
-    }).setOrigin(0.5).setAlpha(0);
+      fontSize: '13px',
+      color: this.personality.color,
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    personalityBanner.add([pBg, pText]);
+    personalityBanner.setAlpha(0);
 
     // Title Fade In
     this.tweens.add({
-      targets: [titleText, subText],
+      targets: [titleText, personalityBanner],
       alpha: 1,
       duration: 800,
       ease: 'Power2',
@@ -150,10 +162,10 @@ export class ReleaseScene extends Phaser.Scene {
             },
             onComplete: () => {
               this.dustEmitter.stop();
-              // Smooth transition to Arena Scene
+              // Smooth transition to Arena Scene with personality payload
               this.cameras.main.fade(500, 18, 11, 9);
               this.time.delayedCall(550, () => {
-                this.scene.start('ArenaScene', { retryCount: 0 });
+                this.scene.start('ArenaScene', { retryCount: 0, personality: this.personality });
               });
             },
           });

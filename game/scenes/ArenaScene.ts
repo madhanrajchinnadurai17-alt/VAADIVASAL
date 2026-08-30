@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 import { soundManager } from '../../utils/soundSynthesizer';
+import { BullPersonality, getRandomBullPersonality } from '../bullPersonality';
 
 interface AICompetitor {
   sprite: Phaser.GameObjects.Image;
   speed: number;
   offsetAngle: number;
   name: string;
-  // 4 Continuous Scoring Factors
   distanceScore: number;
   timingScore: number;
   positionScore: number;
@@ -20,6 +20,7 @@ export class ArenaScene extends Phaser.Scene {
   private aiCompetitors: AICompetitor[] = [];
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys: { [key: string]: Phaser.Input.Keyboard.Key } = {};
+  private personality!: BullPersonality;
 
   // Bull AI state
   private bullVelocity = new Phaser.Math.Vector2(0, 0);
@@ -47,16 +48,18 @@ export class ArenaScene extends Phaser.Scene {
   private proximityRing!: Phaser.GameObjects.Graphics;
   private dustParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private countdownText!: Phaser.GameObjects.Text;
-  private scoreFeedbackText!: Phaser.GameObjects.Text;
   private factorsHudText!: Phaser.GameObjects.Text;
+  private personalityBadgeText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'ArenaScene' });
   }
 
-  init(data: { retryCount?: number }) {
+  init(data: { retryCount?: number; personality?: BullPersonality }) {
     this.retryCount = data.retryCount || 0;
+    this.personality = data.personality || getRandomBullPersonality();
     this.playerCloseTime = 0;
+    this.bullSpeed = this.personality.speed;
   }
 
   create() {
@@ -165,18 +168,34 @@ export class ArenaScene extends Phaser.Scene {
       }
     });
 
-    // Top HUD: Phase Header & Countdown
-    this.countdownText = this.add.text(width / 2, 42, 'FLANK THE HUMP FROM THE SIDE! (4s)', {
+    // TOP HUD: Bull Personality Badge & Countdown
+    const hudTopContainer = this.add.container(width / 2, 38);
+    const hudBg = this.add.rectangle(0, 0, 520, 56, 0x120b09, 0.85);
+    hudBg.setStrokeStyle(1.5, Phaser.Display.Color.HexStringToColor(this.personality.color).color);
+
+    this.personalityBadgeText = this.add.text(
+      0,
+      -12,
+      `BULL: ${this.personality.badge} • ${this.personality.description}`,
+      {
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: '12px',
+        color: this.personality.color,
+        fontStyle: 'bold',
+      }
+    ).setOrigin(0.5);
+
+    this.countdownText = this.add.text(0, 10, 'FLANK THE HUMP FROM THE SIDE! (4s)', {
       fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
-      fontSize: '19px',
+      fontSize: '15px',
       color: '#FFD700',
       fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 4,
     }).setOrigin(0.5);
 
+    hudTopContainer.add([hudBg, this.personalityBadgeText, this.countdownText]);
+
     // Live 4-Factor Scoring HUD Bar (Distance, Timing, Position, Angle)
-    this.factorsHudText = this.add.text(width / 2, 68, 'Distance: 0% | Timing: 0% | Position: 0% | Angle: 0%', {
+    this.factorsHudText = this.add.text(width / 2, 78, 'Distance: 0% | Timing: 0% | Position: 0% | Angle: 0%', {
       fontFamily: "'Outfit', sans-serif",
       fontSize: '12px',
       color: '#00F5D4',
@@ -185,17 +204,9 @@ export class ArenaScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5);
 
-    this.scoreFeedbackText = this.add.text(width / 2, 90, 'Approach the flank with matching speed (WASD / Arrows)', {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: '11px',
-      color: '#FFFFFF',
-      stroke: '#000000',
-      strokeThickness: 2.5,
-    }).setOrigin(0.5);
-
     this.phaseTimer = this.phaseDuration;
     this.isPhaseActive = true;
-    this.nextVeerTime = this.time.now + 800;
+    this.nextVeerTime = this.time.now + (this.personality.veerIntervalMin + Math.random() * (this.personality.veerIntervalMax - this.personality.veerIntervalMin));
   }
 
   update(time: number, delta: number) {
@@ -204,26 +215,51 @@ export class ArenaScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const dt = delta / 1000;
 
-    // --- 1. BULL AI & STEERING BEHAVIOR ---
+    // --- 1. PARTICIPANT DETECTION & REACTIVE BULL AI ---
+    // Detect closest participant approaching the bull (Player or AI)
+    let closestParticipantDist = Infinity;
+    let closestParticipantAngle = 0;
+
+    const checkDist = (x: number, y: number) => {
+      const d = Phaser.Math.Distance.Between(this.bull.x, this.bull.y, x, y);
+      if (d < closestParticipantDist) {
+        closestParticipantDist = d;
+        closestParticipantAngle = Phaser.Math.Angle.Between(x, y, this.bull.x, this.bull.y);
+      }
+    };
+
+    checkDist(this.player.x, this.player.y);
+    this.aiCompetitors.forEach((ai) => checkDist(ai.sprite.x, ai.sprite.y));
+
+    // Dynamic veer timing based on Personality
     if (time > this.nextVeerTime) {
-      // Pick dynamic direction inside arena bounds
       const margin = 90;
-      let desiredAngle = this.bullTargetAngle + (Math.random() - 0.5) * 1.6;
-      
-      // Avoid walls
+      let desiredAngle = this.bullTargetAngle + (Math.random() - 0.5) * this.personality.veerAngleMagnitude;
+
+      // Evasive reaction: steer away from closest participant if within evasion radius
+      if (closestParticipantDist < this.personality.evasionRadius) {
+        const evadeWeight = this.personality.evasionStrength;
+        desiredAngle = Phaser.Math.Angle.RotateTo(desiredAngle, closestParticipantAngle, evadeWeight);
+      }
+
+      // Avoid arena walls
       if (this.bull.x < margin) desiredAngle = 0; // Turn right
       else if (this.bull.x > width - margin) desiredAngle = Math.PI; // Turn left
       else if (this.bull.y < margin) desiredAngle = Math.PI / 2; // Turn down
       else if (this.bull.y > height - margin) desiredAngle = -Math.PI / 2; // Turn up
 
       this.bullTargetAngle = desiredAngle;
-      this.nextVeerTime = time + 600 + Math.random() * 800;
-      soundManager.playThavilBass(0.4);
+      
+      // Calculate next veer interval
+      const interval = this.personality.veerIntervalMin + Math.random() * (this.personality.veerIntervalMax - this.personality.veerIntervalMin);
+      this.nextVeerTime = time + interval;
+      soundManager.playThavilBass(0.35);
     }
 
     // Smoothly rotate bull towards target angle
+    const turnRate = this.personality.type === 'Aggressive' || this.personality.type === 'Highly Reactive' ? 4.8 : 3.2;
     const currentBullAngle = Phaser.Math.DegToRad(this.bull.angle - 90);
-    const newBullAngle = Phaser.Math.Angle.RotateTo(currentBullAngle, this.bullTargetAngle, 3.2 * dt);
+    const newBullAngle = Phaser.Math.Angle.RotateTo(currentBullAngle, this.bullTargetAngle, turnRate * dt);
     this.bull.angle = Phaser.Math.RadToDeg(newBullAngle) + 90;
 
     // Move bull forward
@@ -283,7 +319,7 @@ export class ArenaScene extends Phaser.Scene {
 
       const aiAngleToBull = Phaser.Math.Angle.Between(ai.sprite.x, ai.sprite.y, this.bull.x, this.bull.y);
       const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(aiAngleToBull - newBullAngle));
-      ai.positionScore = Math.round(Math.sin(angleDiff) * 100); // 100 at 90 deg flank
+      ai.positionScore = Math.round(Math.sin(angleDiff) * 100);
       ai.angleScore = Math.max(0, Math.round((1 - Math.abs(angleDiff - Math.PI / 2) / (Math.PI / 2)) * 100));
       ai.timingScore = Math.min(100, Math.round((1 - this.phaseTimer / this.phaseDuration) * 70 + Math.random() * 30));
 
@@ -310,7 +346,6 @@ export class ArenaScene extends Phaser.Scene {
     // Factor 3: Position Relative to Bull (Flank vs Head-on vs Tail)
     const angleToBull = Phaser.Math.Angle.Between(this.player.x, this.player.y, this.bull.x, this.bull.y);
     const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(angleToBull - newBullAngle));
-    // Perfect flank is perpendicular (~90 deg / PI/2)
     const positionScore = Math.round(Math.sin(angleDiff) * 100);
 
     // Factor 4: Approach Angle alignment
@@ -339,7 +374,6 @@ export class ArenaScene extends Phaser.Scene {
       `Distance: ${distScore}% | Timing: ${timingScore}% | Position: ${positionScore}% | Angle: ${angleScore}%`
     );
 
-    // Dynamic Color for HUD
     const hudColor = totalScore > 65 ? '#00F5D4' : (totalScore > 40 ? '#FFD700' : '#FFA000');
     this.factorsHudText.setColor(hudColor);
 
@@ -368,7 +402,6 @@ export class ArenaScene extends Phaser.Scene {
     this.isPhaseActive = false;
     const { width, height } = this.scale;
 
-    // Best AI score
     let bestAIScore = 0;
     let closestAIName = 'Velan';
 
@@ -381,16 +414,15 @@ export class ArenaScene extends Phaser.Scene {
 
     const playerTotal = this.playerScores.total;
 
-    // Player wins if playerTotal >= bestAIScore - 15 OR player is close (<110px) OR guaranteed on 3rd attempt (retryCount >= 2)
+    // Guaranteed win by 3rd attempt (retryCount >= 2), or when player scores well
     const playerWon = (playerTotal >= bestAIScore - 15) || (this.playerScores.distance > 60) || (this.retryCount >= 2);
 
     if (playerWon) {
-      // SUCCESS! Transition to Taming Minigame
       soundManager.playCrowdCheer(4);
       soundManager.playGripSuccess(2);
 
       const banner = this.add.container(width / 2, height / 2);
-      const bg = this.add.rectangle(0, 0, 440, 120, 0x120b09, 0.95);
+      const bg = this.add.rectangle(0, 0, 450, 120, 0x120b09, 0.95);
       bg.setStrokeStyle(3, 0x00f5d4);
       const txt1 = this.add.text(0, -26, 'பிடி கிடைத்தது! GRIP SECURED!', {
         fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
@@ -398,7 +430,7 @@ export class ArenaScene extends Phaser.Scene {
         color: '#00F5D4',
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      const txt2 = this.add.text(0, 6, `Flank Approach Score: ${Math.max(playerTotal, 78)}% (Best in Arena)`, {
+      const txt2 = this.add.text(0, 6, `Flank Approach Score: ${Math.max(playerTotal, 78)}% vs ${this.personality.badge}`, {
         fontFamily: "'Outfit', sans-serif",
         fontSize: '14px',
         color: '#FFD700',
@@ -424,16 +456,18 @@ export class ArenaScene extends Phaser.Scene {
       this.time.delayedCall(1600, () => {
         this.cameras.main.fade(400, 18, 11, 9);
         this.time.delayedCall(450, () => {
-          this.scene.start('TamingScene', { attempts: this.retryCount + 1 });
+          this.scene.start('TamingScene', {
+            attempts: this.retryCount + 1,
+            personality: this.personality,
+          });
         });
       });
 
     } else {
-      // AI was closer / Player had suboptimal angle
       soundManager.playGripMiss();
 
       const banner = this.add.container(width / 2, height / 2);
-      const bg = this.add.rectangle(0, 0, 460, 130, 0x120b09, 0.95);
+      const bg = this.add.rectangle(0, 0, 470, 130, 0x120b09, 0.95);
       bg.setStrokeStyle(3, 0xf77f00);
       const txt1 = this.add.text(0, -30, 'வேகம் போதவில்லை! TOO FAR / OFF-ANGLE!', {
         fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
@@ -441,9 +475,9 @@ export class ArenaScene extends Phaser.Scene {
         color: '#F77F00',
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      const txt2 = this.add.text(0, 2, `${closestAIName} had a better approach angle (${bestAIScore}% vs ${playerTotal}%)!`, {
+      const txt2 = this.add.text(0, 2, `${closestAIName} outpaced you against the ${this.personality.badge} bull (${bestAIScore}% vs ${playerTotal}%)!`, {
         fontFamily: "'Outfit', sans-serif",
-        fontSize: '13px',
+        fontSize: '12px',
         color: '#FFFFFF',
       }).setOrigin(0.5);
       const txt3 = this.add.text(0, 28, `Attempt ${this.retryCount + 1}/3 • Repositioning for next charge!`, {
@@ -467,7 +501,7 @@ export class ArenaScene extends Phaser.Scene {
       this.time.delayedCall(2200, () => {
         this.cameras.main.fade(350, 18, 11, 9);
         this.time.delayedCall(400, () => {
-          this.scene.restart({ retryCount: this.retryCount + 1 });
+          this.scene.restart({ retryCount: this.retryCount + 1, personality: this.personality });
         });
       });
     }

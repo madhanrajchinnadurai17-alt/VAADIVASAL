@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../../utils/soundSynthesizer';
+import { BullPersonality, getRandomBullPersonality } from '../bullPersonality';
 
 export interface GameResultData {
   success: boolean;
@@ -8,6 +9,7 @@ export interface GameResultData {
   gripsAchieved: number;
   attemptsUsed: number;
   title: string;
+  bullPersonality: string;
 }
 
 export class TamingScene extends Phaser.Scene {
@@ -16,12 +18,13 @@ export class TamingScene extends Phaser.Scene {
   private barBg!: Phaser.GameObjects.Rectangle;
   private targetZone!: Phaser.GameObjects.Rectangle;
   private needle!: Phaser.GameObjects.Rectangle;
+  private personality!: BullPersonality;
 
   // Minigame State
-  private needlePos = 0; // 0 to 1
-  private needleSpeed = 1.3; // Cycles per sec
+  private needlePos = 0; // -1 to 1
+  private needleSpeed = 1.3;
   private needleDirection = 1;
-  private currentStage = 0; // 0 to 4
+  private currentStage = 0;
   private targetStages = 4;
   private stamina = 100;
   private maxStamina = 100;
@@ -43,20 +46,22 @@ export class TamingScene extends Phaser.Scene {
     super({ key: 'TamingScene' });
   }
 
-  init(data: { attempts?: number }) {
+  init(data: { attempts?: number; personality?: BullPersonality }) {
     this.attemptsUsed = data.attempts || 1;
+    this.personality = data.personality || getRandomBullPersonality();
     this.currentStage = 0;
+    this.targetStages = this.personality.targetStages;
     this.stamina = 100;
     this.reactionTimes = [];
     this.isRoundOver = false;
     this.needlePos = 0;
-    this.needleSpeed = 1.3;
+    this.needleSpeed = 1.3 * this.personality.needleSpeedMultiplier;
   }
 
   create() {
     const { width, height } = this.scale;
     this.cameras.main.fadeIn(400, 18, 11, 9);
-    soundManager.startFestiveDrums(155); // Faster adrenaline rhythm
+    soundManager.startFestiveDrums(155);
 
     // Arena dust background
     const bg = this.add.tileSprite(width / 2, height / 2, width, height, 'arena_ground');
@@ -112,27 +117,33 @@ export class TamingScene extends Phaser.Scene {
 
     // Bar Container Background
     const hudContainer = this.add.container(centerX, hudY);
-    const hudBg = this.add.rectangle(0, 0, barWidth + 30, 100, 0x120b09, 0.9);
-    hudBg.setStrokeStyle(2, 0xffa000);
+    const hudBg = this.add.rectangle(0, 0, barWidth + 30, 104, 0x120b09, 0.9);
+    hudBg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(this.personality.color).color);
 
     this.barBg = this.add.rectangle(0, 5, barWidth, barHeight, 0x2b1e19);
     this.barBg.setStrokeStyle(2, 0x8d5524);
 
-    // Green Grip Target Zone (Shrinks as stage progresses)
-    this.targetZone = this.add.rectangle(0, 5, 120, barHeight - 4, 0x2ec4b6, 0.9);
+    // Green Grip Target Zone
+    const baseW = Math.round(120 * this.personality.targetZoneMultiplier);
+    this.targetZone = this.add.rectangle(0, 5, baseW, barHeight - 4, 0x2ec4b6, 0.9);
     this.targetZone.setStrokeStyle(2, 0x00f5d4);
 
     // Moving Needle Indicator
     this.needle = this.add.rectangle(0, 5, 8, barHeight + 12, 0xffd700);
     this.needle.setStrokeStyle(1.5, 0xffffff);
 
-    // Stage Counter Header
-    this.stageCounterText = this.add.text(0, -32, `GRIP LOCK: 0 / ${this.targetStages} (திமில் பிடி)`, {
-      fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
-      fontSize: '18px',
-      color: '#FFD700',
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
+    // Stage Counter Header with Bull Personality
+    this.stageCounterText = this.add.text(
+      0,
+      -32,
+      `BULL: ${this.personality.badge} | GRIP LOCK: 0 / ${this.targetStages} (திமில் பிடி)`,
+      {
+        fontFamily: "'Mukta Malar', 'Cinzel', sans-serif",
+        fontSize: '16px',
+        color: this.personality.color,
+        fontStyle: 'bold',
+      }
+    ).setOrigin(0.5);
 
     // Action Instruction
     const actionText = this.add.text(0, 32, 'PRESS [SPACE] OR CLICK / TAP WHEN NEEDLE IS IN THE GREEN ZONE!', {
@@ -157,7 +168,7 @@ export class TamingScene extends Phaser.Scene {
     // Top Stamina Bar
     this.createStaminaBar(centerX, 35, width);
 
-    // User Input Listeners (Keyboard & Pointer)
+    // User Input Listeners
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-SPACE', () => this.handleTameAttempt());
     }
@@ -171,14 +182,13 @@ export class TamingScene extends Phaser.Scene {
     const barW = Math.min(screenWidth - 80, 420);
     const barH = 16;
 
-    this.add.text(x, y - 16, 'TAMER STAMINA (வீரம்)', {
+    this.add.text(x, y - 16, 'TAMER FOCUS & BALANCE (கவனக் குவிப்பு)', {
       fontFamily: "'Mukta Malar', 'Outfit', sans-serif",
       fontSize: '13px',
       color: '#FFA000',
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    // Stamina outline
     const staminaBg = this.add.rectangle(x, y, barW, barH, 0x1e120d);
     staminaBg.setStrokeStyle(1.5, 0xffa000);
 
@@ -187,13 +197,14 @@ export class TamingScene extends Phaser.Scene {
   }
 
   private updateTargetZoneWidth() {
-    // Green zone shrinks with each consecutive grip stage: 130 -> 100 -> 75 -> 55
-    const widths = [130, 100, 75, 55];
-    const newW = widths[Math.min(this.currentStage, widths.length - 1)];
+    // Green zone shrinks with each consecutive grip stage and scales by personality
+    const baseWidths = [130, 100, 75, 55, 45];
+    const rawW = baseWidths[Math.min(this.currentStage, baseWidths.length - 1)];
+    const newW = Math.round(rawW * this.personality.targetZoneMultiplier);
     this.targetZone.setSize(newW, 24);
 
-    // Needle gets slightly faster
-    this.needleSpeed = 1.3 + this.currentStage * 0.35;
+    // Needle gets faster per stage and by personality multiplier
+    this.needleSpeed = (1.3 + this.currentStage * 0.35) * this.personality.needleSpeedMultiplier;
   }
 
   update(time: number, delta: number) {
@@ -201,7 +212,7 @@ export class TamingScene extends Phaser.Scene {
 
     const dt = delta / 1000;
 
-    // --- Oscillate Needle back and forth (-1 to 1) ---
+    // Oscillate Needle
     this.needlePos += this.needleDirection * this.needleSpeed * dt * 2;
     if (this.needlePos >= 1) {
       this.needlePos = 1;
@@ -215,8 +226,8 @@ export class TamingScene extends Phaser.Scene {
     const halfWidth = (this.barBg.width - 20) / 2;
     this.needle.x = this.needlePos * halfWidth;
 
-    // Passive stamina drain (10 per second)
-    this.stamina -= dt * 6.5;
+    // Passive stamina drain (scales slightly with personality resistance)
+    this.stamina -= dt * (6.5 * this.personality.staminaResistance);
     this.updateStaminaDisplay();
 
     if (this.stamina <= 0) {
@@ -229,7 +240,6 @@ export class TamingScene extends Phaser.Scene {
     const barW = Math.min(this.scale.width - 80, 420);
     this.staminaBarFill.setSize(barW * pct, 12);
 
-    // Color shift on low stamina
     if (pct < 0.3) {
       this.staminaBarFill.setFillStyle(0xd90429);
     } else if (pct < 0.6) {
@@ -239,7 +249,6 @@ export class TamingScene extends Phaser.Scene {
     }
   }
 
-  // User Spacebar / Tap Interaction
   private handleTameAttempt() {
     if (this.isRoundOver) return;
 
@@ -248,7 +257,6 @@ export class TamingScene extends Phaser.Scene {
     this.lastTriggerTime = now;
     this.reactionTimes.push(reactionMs);
 
-    // Calculate distance from needle to target center
     const currentNeedleX = this.needle.x;
     const targetHalfW = this.targetZone.width / 2;
 
@@ -259,18 +267,22 @@ export class TamingScene extends Phaser.Scene {
       this.currentStage++;
       soundManager.playGripSuccess(this.currentStage);
       this.dustEmitter.emitParticleAt(this.bullSprite.x, this.bullSprite.y + 40, 6);
-
-      // Camera micro-shake
       this.cameras.main.shake(180, 0.005);
 
-      // Tamil praise feedback
-      const tamilPraises = ['பிடி 1: பிடி நன்று!', 'பிடி 2: விடாதே!', 'பிடி 3: வீரம்!', 'பிடி 4: முழு வெற்றி!'];
+      const tamilPraises = [
+        'பிடி 1: பிடி நன்று!',
+        'பிடி 2: விடாதே!',
+        'பிடி 3: வீரம்!',
+        'பிடி 4: அருமை!',
+        'பிடி 5: முழு வெற்றி!',
+      ];
       const text = tamilPraises[Math.min(this.currentStage - 1, tamilPraises.length - 1)];
       this.showFeedback(text, '#00F5D4');
 
-      this.stageCounterText.setText(`GRIP LOCK: ${this.currentStage} / ${this.targetStages} (திமில் பிடி)`);
+      this.stageCounterText.setText(
+        `BULL: ${this.personality.badge} | GRIP LOCK: ${this.currentStage} / ${this.targetStages} (திமில் பிடி)`
+      );
 
-      // Restore some stamina reward
       this.stamina = Math.min(this.maxStamina, this.stamina + 12);
 
       if (this.currentStage >= this.targetStages) {
@@ -285,7 +297,6 @@ export class TamingScene extends Phaser.Scene {
       soundManager.playBullSnort();
       this.cameras.main.shake(250, 0.008);
 
-      // Bull buck animation (pulls away)
       this.tweens.add({
         targets: this.bullSprite,
         x: '+=30',
@@ -305,8 +316,8 @@ export class TamingScene extends Phaser.Scene {
 
       this.dustEmitter.emitParticleAt(this.bullSprite.x - 20, this.bullSprite.y + 30, 4);
 
-      // Penalty stamina drain
-      this.stamina -= 18;
+      // Penalty stamina drain adjusted by personality resistance
+      this.stamina -= 16 * this.personality.staminaResistance;
       this.showFeedback('விலகியது! PULL BACK!', '#F77F00');
     }
   }
@@ -327,7 +338,6 @@ export class TamingScene extends Phaser.Scene {
     });
   }
 
-  // --- VICTORY HANDLER ---
   private handleTameVictory() {
     this.isRoundOver = true;
     soundManager.stopFestiveDrums();
@@ -336,7 +346,6 @@ export class TamingScene extends Phaser.Scene {
     this.marigoldEmitter.start();
     this.dustEmitter.emitParticleAt(this.bullSprite.x, this.bullSprite.y, 25);
 
-    // Compute stats
     const avgReaction = this.reactionTimes.length > 0
       ? Math.round(this.reactionTimes.reduce((a, b) => a + b, 0) / this.reactionTimes.length)
       : 320;
@@ -348,22 +357,20 @@ export class TamingScene extends Phaser.Scene {
       avgReactionTimeMs: avgReaction,
       gripsAchieved: this.currentStage,
       attemptsUsed: this.attemptsUsed,
-      title: 'வீரத் தமிழன் • Valorous Champion',
+      title: `வீரத் தமிழன் (${this.personality.badge} Bull Master)`,
+      bullPersonality: `${this.personality.badge} (${this.personality.tamilName})`,
     };
 
-    // Emit event to React parent container
     this.time.delayedCall(1200, () => {
       this.game.events.emit('game-finished', resultData);
     });
   }
 
-  // --- BULL ESCAPED HANDLER (Stamina out) ---
   private handleStaminaExhausted() {
     this.isRoundOver = true;
     soundManager.stopFestiveDrums();
     soundManager.playBullSnort();
 
-    // Bull gallops away gracefully
     this.tweens.add({
       targets: this.bullSprite,
       x: this.scale.width + 200,
@@ -381,7 +388,8 @@ export class TamingScene extends Phaser.Scene {
       avgReactionTimeMs: avgReaction,
       gripsAchieved: this.currentStage,
       attemptsUsed: this.attemptsUsed,
-      title: 'துணிச்சலான முயற்சி • Brave Contender',
+      title: `துணிச்சலான முயற்சி (vs ${this.personality.badge})`,
+      bullPersonality: `${this.personality.badge} (${this.personality.tamilName})`,
     };
 
     this.showFeedback('காளை தப்பியது! THE BULL ESCAPED!', '#FFA000');

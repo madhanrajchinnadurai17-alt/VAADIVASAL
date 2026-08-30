@@ -63,15 +63,20 @@ export const ResultModal: React.FC<ResultModalProps> = ({ result, onPlayAgain })
             </p>
           </div>
 
-          {/* Honorary Title Badge */}
-          <div className="rounded-xl border border-tamil-gold/30 bg-black/50 p-3">
+          {/* Honorary Title & Bull Personality Badge */}
+          <div className="rounded-xl border border-tamil-gold/30 bg-black/50 p-3 space-y-1">
             <div className="text-[11px] font-semibold text-tamil-sand/70 uppercase tracking-widest flex items-center justify-center gap-1">
               <Award className="w-3.5 h-3.5 text-tamil-gold" />
               <span>Conferred Honor</span>
             </div>
-            <div className="text-base font-bold text-tamil-gold mt-0.5 font-tamil">
+            <div className="text-base font-bold text-tamil-gold font-tamil">
               {result.title}
             </div>
+            {result.bullPersonality && (
+              <div className="text-xs text-amber-300 font-semibold pt-1 border-t border-white/10">
+                Opponent: <span className="text-white">{result.bullPersonality}</span>
+              </div>
+            )}
           </div>
 
           {/* Stats Grid */}
