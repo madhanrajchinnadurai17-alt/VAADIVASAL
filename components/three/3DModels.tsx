@@ -465,44 +465,93 @@ export const VaadivasalGate3D: React.FC = () => {
   );
 };
 
-// ================= 5. ARENA ENVIRONMENT 3D =================
+// ================= 5. ARENA ENVIRONMENT 3D (PBR & VARIANTS) =================
 export const ArenaEnvironment3D: React.FC = () => {
+  const { currentVillage, isNightJallikattu, screen } = useGameStore();
+  const isGrandFinal = currentVillage.id === 'championship' || screen === 'grand_final';
+
   return (
     <group>
-      {/* Sandy Arena Ground */}
+      {/* Sandy Arena Ground with PBR Roughness */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[40, 50]} />
-        <meshStandardMaterial color="#d4a373" roughness={0.9} />
+        <planeGeometry args={[44, 54]} />
+        <meshStandardMaterial
+          color={isNightJallikattu ? "#8c6239" : "#d4a373"}
+          roughness={0.85}
+          metalness={0.05}
+        />
       </mesh>
 
       {/* Central Sacred Kolam Ring */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, -4]}>
         <ringGeometry args={[3.8, 4.0, 32]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.65} />
       </mesh>
 
       {/* Blue Perimeter Double Barricades */}
       {/* Left Fence */}
       <mesh position={[-9, 1.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <boxGeometry args={[40, 3, 0.2]} />
-        <meshStandardMaterial color="#2563eb" wireframe={false} />
+        <boxGeometry args={[44, 3, 0.2]} />
+        <meshStandardMaterial color="#1d4ed8" metalness={0.4} roughness={0.6} />
       </mesh>
 
       {/* Right Fence */}
       <mesh position={[9, 1.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <boxGeometry args={[40, 3, 0.2]} />
-        <meshStandardMaterial color="#2563eb" wireframe={false} />
+        <boxGeometry args={[44, 3, 0.2]} />
+        <meshStandardMaterial color="#1d4ed8" metalness={0.4} roughness={0.6} />
       </mesh>
 
       {/* Spectator Galleries on Sides */}
-      <mesh position={[-11, 2.5, 0]}>
-        <boxGeometry args={[3, 5, 38]} />
-        <meshStandardMaterial color="#18181b" />
+      <mesh position={[-11.5, 2.5, 0]}>
+        <boxGeometry args={[3.5, 5.5, 42]} />
+        <meshStandardMaterial color="#18181b" roughness={0.9} />
       </mesh>
-      <mesh position={[11, 2.5, 0]}>
-        <boxGeometry args={[3, 5, 38]} />
-        <meshStandardMaterial color="#18181b" />
+      <mesh position={[11.5, 2.5, 0]}>
+        <boxGeometry args={[3.5, 5.5, 42]} />
+        <meshStandardMaterial color="#18181b" roughness={0.9} />
       </mesh>
+
+      {/* Night Jallikattu: Warm Lantern / Floodlight Point Lights */}
+      {isNightJallikattu && (
+        <group>
+          {[-8, -4, 0, 4, 8].map((z, idx) => (
+            <group key={idx}>
+              {/* Left Lanterns */}
+              <pointLight position={[-8.8, 3.2, z]} intensity={1.8} color="#f59e0b" distance={8} />
+              <mesh position={[-8.8, 3.2, z]}>
+                <sphereGeometry args={[0.15, 8, 8]} />
+                <meshBasicMaterial color="#fef08a" />
+              </mesh>
+
+              {/* Right Lanterns */}
+              <pointLight position={[8.8, 3.2, z]} intensity={1.8} color="#f59e0b" distance={8} />
+              <mesh position={[8.8, 3.2, z]}>
+                <sphereGeometry args={[0.15, 8, 8]} />
+                <meshBasicMaterial color="#fef08a" />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      )}
+
+      {/* Grand Final Championship Center Trophy Podium */}
+      {isGrandFinal && (
+        <group position={[0, 0, -4]}>
+          <mesh position={[0, 0.4, 0]} castShadow>
+            <cylinderGeometry args={[1.5, 1.8, 0.8, 16]} />
+            <meshStandardMaterial color="#eab308" metalness={0.8} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 1.3, 0]} castShadow>
+            <cylinderGeometry args={[0.3, 0.4, 1.0, 12]} />
+            <meshStandardMaterial color="#fef08a" metalness={0.9} roughness={0.1} />
+          </mesh>
+          {/* Gold Trophy Cup */}
+          <mesh position={[0, 2.0, 0]} castShadow>
+            <sphereGeometry args={[0.45, 12, 12]} />
+            <meshStandardMaterial color="#ffd700" metalness={0.9} roughness={0.1} />
+          </mesh>
+        </group>
+      )}
     </group>
   );
 };

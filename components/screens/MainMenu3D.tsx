@@ -1,10 +1,18 @@
 import React from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { soundManager } from '../../utils/soundSynthesizer';
-import { Sparkles, Utensils, ArrowRight, Volume2, VolumeX } from 'lucide-react';
+import { Sparkles, Utensils, MapPin, Volume2, VolumeX, Moon, Sun } from 'lucide-react';
 
 export const MainMenu3D: React.FC = () => {
-  const { setScreen, resetToArena, soundMuted, toggleMute } = useGameStore();
+  const {
+    setScreen,
+    resetToArena,
+    soundMuted,
+    toggleMute,
+    currentVillage,
+    isNightJallikattu,
+    toggleNightMode,
+  } = useGameStore();
 
   const handleStartArena = () => {
     soundManager.playThavilSnap(0.8);
@@ -16,22 +24,47 @@ export const MainMenu3D: React.FC = () => {
     setScreen('bull_selection');
   };
 
+  const handleOpenWorldMap = () => {
+    soundManager.playThavilSnap(0.8);
+    setScreen('world_map');
+  };
+
   return (
-    <div className="relative w-full h-full min-h-[500px] flex flex-col items-center justify-between p-6 bg-gradient-to-b from-[#2D1B16] via-[#1a0f0a] to-[#120B09] text-center overflow-hidden">
+    <div className="relative w-full h-full min-h-[500px] flex flex-col items-center justify-between p-4 md:p-6 bg-gradient-to-b from-[#2D1B16] via-[#1a0f0a] to-[#120B09] text-center overflow-hidden">
       <div className="absolute inset-0 kolam-pattern pointer-events-none opacity-20" />
 
-      {/* Top Sound Bar */}
+      {/* Top Bar with Location, Night Mode Toggle, and Sound */}
       <div className="relative z-10 w-full max-w-2xl flex justify-between items-center border-b border-white/10 pb-3">
-        <span className="text-xs text-amber-300 font-bold uppercase tracking-wider">
-          Avaniyapuram Circuit • Round 1
-        </span>
         <button
-          onClick={toggleMute}
-          className="flex items-center space-x-1 px-3 py-1 rounded-lg bg-black/40 border border-white/15 text-xs text-gray-300 hover:text-white"
+          onClick={handleOpenWorldMap}
+          className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 text-xs font-bold transition-all"
         >
-          {soundMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          <span>{soundMuted ? 'Muted' : 'Sound ON'}</span>
+          <MapPin className="w-3.5 h-3.5" />
+          <span>{currentVillage.name} ({currentVillage.tamilName})</span>
         </button>
+
+        <div className="flex items-center space-x-2">
+          {/* Day / Night Toggle */}
+          <button
+            onClick={toggleNightMode}
+            className={`flex items-center space-x-1 px-2.5 py-1 rounded-xl text-xs font-bold border transition-all ${
+              isNightJallikattu
+                ? 'bg-indigo-950/80 border-indigo-400 text-indigo-200'
+                : 'bg-amber-950/80 border-amber-400 text-amber-200'
+            }`}
+          >
+            {isNightJallikattu ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{isNightJallikattu ? 'Night Mode' : 'Day Mode'}</span>
+          </button>
+
+          <button
+            onClick={toggleMute}
+            className="flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-black/40 border border-white/15 text-xs text-gray-300 hover:text-white"
+          >
+            {soundMuted ? <VolumeX className="w-3.5 h-3.5 text-red-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+            <span className="hidden sm:inline">{soundMuted ? 'Muted' : 'Sound'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Header */}
@@ -40,7 +73,7 @@ export const MainMenu3D: React.FC = () => {
           வாடிவாசல் 3D
         </h1>
         <p className="text-xs md:text-sm text-gray-300 max-w-md mx-auto">
-          Choose your heritage path: raise and train a champion Kangayam bull or enter the arena as Participant #07.
+          Choose your heritage path: raise and train a champion Kangayam bull, explore Tamil Nadu circuits, or enter the arena as Participant #07.
         </p>
 
         {/* Dual Paths Selection Cards */}
@@ -56,7 +89,7 @@ export const MainMenu3D: React.FC = () => {
                 PATH 1: TRAIN THE BULL
               </p>
               <p className="text-[11px] text-gray-300">
-                Feed traditional millet, river baths, pond water training, and grow a champion Kangayam.
+                Paddock care, pond water endurance, sprint bursts, reaction reflex, and growth tiers.
               </p>
             </div>
             <button
@@ -64,7 +97,7 @@ export const MainMenu3D: React.FC = () => {
               className="mt-4 w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-md transition-all flex items-center justify-center space-x-1"
             >
               <Utensils className="w-3.5 h-3.5" />
-              <span>FARM DASHBOARD</span>
+              <span>BULL TURNTABLE & CARE</span>
             </button>
           </div>
 
@@ -79,7 +112,7 @@ export const MainMenu3D: React.FC = () => {
                 PATH 2: ENTER THE ARENA
               </p>
               <p className="text-[11px] text-gray-300">
-                Enter the 3D arena as Participant #07, flank the charging bull, and hold for 10 seconds!
+                Enter the {currentVillage.name} arena as Participant #07, flank the charging bull, and hold for 10 seconds!
               </p>
             </div>
             <button
@@ -90,6 +123,17 @@ export const MainMenu3D: React.FC = () => {
               <span>ENTER 3D ARENA</span>
             </button>
           </div>
+        </div>
+
+        {/* World Map CTA Link */}
+        <div className="pt-2">
+          <button
+            onClick={handleOpenWorldMap}
+            className="text-xs text-amber-300 hover:text-white font-bold underline underline-offset-4 flex items-center justify-center mx-auto gap-1"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>Explore 5-Village Championship World Map (உலக வரைபடம்)</span>
+          </button>
         </div>
       </div>
 

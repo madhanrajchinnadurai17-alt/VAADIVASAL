@@ -9,6 +9,9 @@ import { PondTraining3D } from './screens/training/PondTraining3D';
 import { SprintTraining3D } from './screens/training/SprintTraining3D';
 import { ReactionTraining3D } from './screens/training/ReactionTraining3D';
 import { BullOwnerReward3D } from './screens/BullOwnerReward3D';
+import { WorldMap3D } from './screens/WorldMap3D';
+import { TravelTransition3D } from './screens/TravelTransition3D';
+import { GrandFinal3D } from './screens/GrandFinal3D';
 import { ResultScreen3D } from './screens/ResultScreen3D';
 import { GameHUDOverlay } from './hud/GameHUDOverlay';
 import { BullDashboard } from './BullDashboard';
@@ -45,7 +48,16 @@ export const VaadivasalGame3D: React.FC = () => {
       {/* 6. Phase 2: Bull Owner Reward / Stat Gains */}
       {screen === 'bull_reward' && <BullOwnerReward3D />}
 
-      {/* 7. Bull Owner Legacy Dashboard */}
+      {/* 7. Phase 3: World Map & Circuit Journey */}
+      {screen === 'world_map' && <WorldMap3D />}
+
+      {/* 8. Phase 3: Travel Transition */}
+      {screen === 'travel_transition' && <TravelTransition3D />}
+
+      {/* 9. Phase 3: State Grand Championship Screen */}
+      {screen === 'grand_final' && <GrandFinal3D />}
+
+      {/* 10. Bull Owner Legacy Dashboard */}
       {screen === 'bull_dashboard' && (
         <div className="w-full h-full overflow-y-auto p-2 bg-[#120B09]">
           <BullDashboard
@@ -59,7 +71,7 @@ export const VaadivasalGame3D: React.FC = () => {
         </div>
       )}
 
-      {/* 8. 3D Arena Screens (Entrance, Gate Release, Arena Interaction, Taming Minigame, Result) */}
+      {/* 11. 3D Arena Screens (Entrance, Gate Release, Arena Interaction, Taming Minigame, Result) */}
       {(screen === 'arena_entrance' ||
         screen === 'vaadivasal_release' ||
         screen === 'arena_interaction' ||

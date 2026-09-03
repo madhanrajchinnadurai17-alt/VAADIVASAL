@@ -12,11 +12,14 @@ export type GameScreen =
   | 'training_sprint'
   | 'training_reaction'
   | 'bull_reward'
+  | 'world_map'
+  | 'travel_transition'
   | 'arena_entrance'
   | 'vaadivasal_release'
   | 'arena_interaction'
   | 'taming_minigame'
   | 'round_result'
+  | 'grand_final'
   | 'bull_dashboard';
 
 export interface CompetitorPlayer {
@@ -66,6 +69,11 @@ interface GameState {
   bullTier: BullTier;
   lastTrainingGain: TrainingGain | null;
 
+  // Phase 3 World Journey & Progression
+  unlockedVillageIndex: number;
+  destinationVillage: VillageEvent | null;
+  isNightJallikattu: boolean;
+
   // Controls & Physics state
   joystick: { x: number; y: number };
   isSprinting: boolean;
@@ -101,6 +109,10 @@ interface GameState {
   waterBull: () => void;
   restBull: () => void;
   completeTraining: (stat: 'speed' | 'stamina' | 'strength' | 'temperament', amount: number, title: string) => boolean;
+
+  // Phase 3 Village Travel Actions
+  travelToVillage: (village: VillageEvent) => void;
+  toggleNightMode: () => void;
 }
 
 const INITIAL_PLAYERS: CompetitorPlayer[] = [
@@ -138,6 +150,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   bullTier: 'young',
   lastTrainingGain: null,
+
+  // Phase 3 Defaults
+  unlockedVillageIndex: 1, // First 2 unlocked by default for instant travel
+  destinationVillage: null,
+  isNightJallikattu: false,
   
   joystick: { x: 0, y: 0 },
   isSprinting: false,
@@ -181,9 +198,16 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   completeRound: (success) => {
+    const currentIdx = TAMIL_VILLAGES.findIndex((v) => v.id === get().currentVillage.id);
+    let nextUnlocked = get().unlockedVillageIndex;
+    if (success && currentIdx >= get().unlockedVillageIndex && currentIdx < TAMIL_VILLAGES.length - 1) {
+      nextUnlocked = currentIdx + 1;
+    }
+
     set((state) => ({
       isTameSuccess: success,
-      screen: 'round_result',
+      unlockedVillageIndex: nextUnlocked,
+      screen: currentIdx === TAMIL_VILLAGES.length - 1 && success ? 'grand_final' : 'round_result',
       players: state.players.map((p) => (p.isUser ? { ...p, completed: true, score: state.score } : p)),
     }));
   },
@@ -276,5 +300,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
 
     return tierUp;
+  },
+
+  // Phase 3 Village Travel Actions
+  travelToVillage: (village: VillageEvent) => {
+    set({
+      destinationVillage: village,
+      currentVillage: village,
+      screen: 'travel_transition',
+    });
+  },
+
+  toggleNightMode: () => {
+    set((state) => ({ isNightJallikattu: !state.isNightJallikattu }));
   },
 }));

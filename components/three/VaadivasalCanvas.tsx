@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { Environment, ContactShadows } from '@react-three/drei';
 import {
   Bull3D,
   Player3D,
@@ -18,9 +19,9 @@ export const VaadivasalCanvas: React.FC = () => {
     actionTrigger,
     advanceGripStage,
     updateTimer,
-    timerSeconds,
     isPaused,
     setTargetObjective,
+    isNightJallikattu,
   } = useGameStore();
 
   // Entrance & Release Sequence Timers
@@ -81,11 +82,14 @@ export const VaadivasalCanvas: React.FC = () => {
         camera={{ position: [0, 4, 8], fov: 50 }}
         className="w-full h-full"
       >
-        {/* Warm Tamil Nadu Sunlight & Ambient Arena Lighting */}
-        <ambientLight intensity={0.7} color="#fff1e6" />
+        {/* Realistic PBR Environment Lighting */}
+        <Environment preset={isNightJallikattu ? "night" : "sunset"} />
+
+        {/* Ambient & Directional Sun/Moonlight */}
+        <ambientLight intensity={isNightJallikattu ? 0.35 : 0.65} color={isNightJallikattu ? "#60a5fa" : "#fff1e6"} />
         <directionalLight
-          position={[10, 18, 12]}
-          intensity={1.4}
+          position={isNightJallikattu ? [5, 15, -8] : [10, 18, 12]}
+          intensity={isNightJallikattu ? 0.8 : 1.5}
           castShadow
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
@@ -95,12 +99,24 @@ export const VaadivasalCanvas: React.FC = () => {
           shadow-camera-right={15}
           shadow-camera-top={15}
           shadow-camera-bottom={-15}
-          color="#ffedd5"
+          color={isNightJallikattu ? "#93c5fd" : "#ffedd5"}
         />
-        <pointLight position={[0, 4, -10]} intensity={0.8} color="#f59e0b" />
 
-        {/* Dynamic Fog for Depth */}
-        <fog attach="fog" args={['#deb887', 15, 38]} />
+        {/* Soft Ground Contact Ambient Occlusion Shadows */}
+        <ContactShadows
+          position={[0, 0.01, 0]}
+          opacity={0.65}
+          scale={38}
+          blur={2.0}
+          far={8}
+          color="#000000"
+        />
+
+        {/* Dynamic Fog for Atmospheric Depth */}
+        <fog
+          attach="fog"
+          args={[isNightJallikattu ? '#090d16' : '#deb887', isNightJallikattu ? 10 : 16, 42]}
+        />
 
         {/* 3D Scene Components */}
         <CameraController />
