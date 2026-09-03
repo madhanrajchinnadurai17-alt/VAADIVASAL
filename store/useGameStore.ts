@@ -173,12 +173,12 @@ interface GameState {
 
 // Team PARTIKAIR with authentic bib numbers
 const INITIAL_PLAYERS: CompetitorPlayer[] = [
-  { id: '1', bib: '18', name: 'MURUGAN', isUser: false, completed: true, score: 210 },
-  { id: '2', bib: '24', name: 'SIVA', isUser: false, completed: true, score: 230 },
-  { id: '3', bib: '31', name: 'KARTHIK', isUser: false, completed: true, score: 195 },
-  { id: '4', bib: '42', name: 'AJITH', isUser: false, completed: true, score: 220 },
-  { id: '5', bib: '55', name: 'DINESH', isUser: false, completed: true, score: 240 },
-  { id: '6', bib: '07', name: 'YOU', isUser: true, completed: false, score: 250 },
+  { id: '1', bib: '01', name: 'MURUGAN', isUser: false, completed: true, score: 210 },
+  { id: '2', bib: '02', name: 'SIVA', isUser: false, completed: true, score: 230 },
+  { id: '3', bib: '03', name: 'KARTHIK', isUser: false, completed: true, score: 195 },
+  { id: '4', bib: '04', name: 'AJITH', isUser: false, completed: true, score: 220 },
+  { id: '5', bib: '05', name: 'DINESH', isUser: false, completed: true, score: 240 },
+  { id: '6', bib: '06', name: 'YOU', isUser: true, completed: false, score: 250 },
 ];
 
 export const useGameStore = create<GameState>((set, get) => ({

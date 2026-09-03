@@ -2,173 +2,246 @@ import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { soundManager } from '../../utils/soundSynthesizer';
 import confetti from 'canvas-confetti';
-import { Trophy, ChevronLeft, ChevronRight, Award, MapPin, ArrowRight, CheckCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Trophy, Heart, Zap, Hand, HelpCircle, Info, Settings } from 'lucide-react';
 
-interface RewardItem {
+interface RewardCard {
   id: string;
   name: string;
   tamilName: string;
   icon: string;
   category: string;
-  description: string;
 }
 
-const SEASON_REWARDS: RewardItem[] = [
+const REWARDS_LIST: RewardCard[] = [
   {
-    id: 'double_kalash_pot',
-    name: 'Double-Kalash Brass Trophy Pot',
-    tamilName: 'இரட்டை கலச பித்தளை பித்தளை பாணை',
-    icon: '🏺',
-    category: 'Sacred Trophy',
-    description: 'Traditional heavy brass double-kalash pot engraved with sacred Kolam patterns.',
+    id: 'gold_necklace',
+    name: 'Gold Veera Malai',
+    tamilName: 'வீரத் தங்க மாலை',
+    icon: '📿',
+    category: 'Sacred Honor',
   },
   {
     id: 'hero_motorcycle',
-    name: 'Hero Sports Motorcycle',
-    tamilName: 'வீர ஸ்போர்ட்ஸ் மோட்டார் பைக்',
+    name: 'Royal Sports Motorcycle',
+    tamilName: 'வீர மோட்டார் பைக்',
     icon: '🏍️',
     category: 'Grand Prize',
-    description: 'Premier grand prize awarded to top participant of the arena circuit.',
   },
   {
-    id: 'ceremonial_lamp',
-    name: 'Sacred Kuthu Vilakku Lamp',
-    tamilName: 'மங்கல குத்து விளக்கு',
+    id: 'kuthu_vilakku',
+    name: 'Brass Kuthu Vilakku',
+    tamilName: 'மங்கலக் குத்து விளக்கு',
     icon: '🪔',
-    category: 'Heritage Honor',
-    description: 'Five-wick auspicious temple brass lamp symbolizing heritage victory.',
+    category: 'Heritage Trophy',
   },
   {
-    id: 'trophy_showcase',
-    name: 'Village Showcase Trophy Case',
-    tamilName: 'சாம்பியன் கண்ணாடி பேழை',
+    id: 'showcase_case',
+    name: 'Showcase Trophy Cabinet',
+    tamilName: 'வெற்றிக் கண்ணாடிப் பேழை',
     icon: '🏆',
     category: 'Hall of Fame',
-    description: 'Displayed in the village community center honoring participant bravery.',
   },
 ];
 
 export const SeasonReward3D: React.FC = () => {
-  const { currentVillage, score, setScreen, resetToArena } = useGameStore();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const {
+    currentVillage,
+    setScreen,
+    playerHealth,
+    playerStamina,
+    playerGripStrength,
+    currentReputation,
+    gripSkillPercent,
+  } = useGameStore();
+
+  const [activeIdx, setActiveIdx] = useState(1); // Default to motorcycle
 
   useEffect(() => {
     soundManager.stopFestiveDrums();
     soundManager.playVictoryFanfare();
 
     confetti({
-      particleCount: 160,
-      spread: 80,
-      origin: { y: 0.6 },
-      colors: ['#FFD700', '#FFA000', '#F26A1B', '#00F5D4'],
+      particleCount: 200,
+      spread: 90,
+      origin: { y: 0.55 },
+      colors: ['#FFD700', '#FFA000', '#F26A1B', '#00F5D4', '#FFFFFF'],
     });
   }, []);
 
   const handlePrev = () => {
     soundManager.playThavilSnap(0.5);
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : SEASON_REWARDS.length - 1));
+    setActiveIdx((prev) => (prev > 0 ? prev - 1 : REWARDS_LIST.length - 1));
   };
 
   const handleNext = () => {
     soundManager.playThavilSnap(0.5);
-    setCurrentIndex((prev) => (prev < SEASON_REWARDS.length - 1 ? prev + 1 : 0));
+    setActiveIdx((prev) => (prev < REWARDS_LIST.length - 1 ? prev + 1 : 0));
   };
 
-  const currentReward = SEASON_REWARDS[currentIndex];
-
   return (
-    <div className="relative w-full h-full min-h-[520px] flex items-center justify-center p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-hidden select-none">
-      <div className="relative w-full max-w-lg rounded-3xl border-2 border-amber-400 bg-gradient-to-b from-[#2a1710] via-[#1a0f0a] to-[#120B09] p-6 text-center shadow-2xl space-y-4">
-        <div className="absolute inset-0 kolam-pattern pointer-events-none opacity-20" />
+    <div className="relative w-full h-full min-h-[520px] flex flex-col justify-between p-3 md:p-5 bg-gradient-to-b from-[#2e170c] via-[#1a0e08] to-[#0f0704] text-white overflow-hidden select-none">
+      <div className="absolute inset-0 kolam-pattern pointer-events-none opacity-15" />
 
-        <div className="relative z-10 space-y-3">
-          {/* Top Banner */}
-          <div>
-            <span className="px-3.5 py-1 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-widest border border-amber-400/50">
-              {currentVillage.name.toUpperCase()} JALLIKATTU – SEASON CHAMPION REWARD
-            </span>
-            <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-tamil-saffron font-display mt-1">
-              வெற்றி விருதுகள் • SEASON PRIZES
-            </h2>
-            <p className="text-xs text-amber-200 font-bold">
-              WINNER – PARTICIPANT #07 • {currentVillage.district} CIRCUIT
-            </p>
-          </div>
-
-          {/* 4-Reward Horizontal Carousel */}
-          <div className="relative bg-black/60 border border-white/10 rounded-2xl p-4 shadow-xl">
-            {/* Left / Right Nav Arrows */}
-            <button
-              onClick={handlePrev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/80 hover:bg-amber-500 hover:text-black border border-white/20 text-white transition-all shadow-md"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleNext}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/80 hover:bg-amber-500 hover:text-black border border-white/20 text-white transition-all shadow-md"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-
-            {/* Current Selected Reward Card */}
-            <div className="max-w-xs mx-auto space-y-2">
-              <div className="w-20 h-20 mx-auto rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-4xl shadow-inner animate-pulse">
-                {currentReward.icon}
+      {/* ================= 1. TOP HUD matching Image 4 ================= */}
+      <div className="relative z-20 flex items-start justify-between">
+        {/* Top-Left: Player Stats & Reputation */}
+        <div className="flex flex-col gap-1 max-w-[240px]">
+          <div className="flex items-center gap-2 bg-[#1b120c]/90 border border-amber-500/40 p-2 rounded-2xl shadow-xl">
+            <div className="w-10 h-10 rounded-full border-2 border-amber-400 bg-[#20130c] flex items-center justify-center font-mono font-black text-amber-300 text-xs">
+              #07
+            </div>
+            <div className="flex-1 space-y-1 text-[9px] font-bold">
+              <div className="flex justify-between text-red-300">
+                <span>❤️ Health</span>
+                <span>{playerHealth}</span>
               </div>
-
-              <div>
-                <span className="text-[9px] font-black uppercase tracking-wider text-amber-400">
-                  {currentReward.category} ({currentIndex + 1}/4)
-                </span>
-                <h3 className="text-base font-black text-white">
-                  {currentReward.name}
-                </h3>
-                <div className="text-xs text-amber-300 font-tamil font-bold">
-                  {currentReward.tamilName}
-                </div>
-                <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
-                  {currentReward.description}
-                </p>
+              <div className="flex justify-between text-cyan-300">
+                <span>⚡ Stamina</span>
+                <span>{playerStamina}</span>
+              </div>
+              <div className="flex justify-between text-amber-300">
+                <span>✋ Grip</span>
+                <span>{playerGripStrength}</span>
               </div>
             </div>
+          </div>
 
-            {/* Carousel Dots */}
-            <div className="flex justify-center gap-1.5 mt-3">
-              {SEASON_REWARDS.map((_, idx) => (
+          <div className="bg-[#1b120c]/90 border border-amber-500/40 px-2.5 py-1 rounded-xl shadow-xl flex justify-between items-center text-[9px] text-amber-300 font-bold">
+            <span>CURRENT REPUTATION</span>
+            <span>{currentReputation}</span>
+          </div>
+        </div>
+
+        {/* Top-Center: Arena Header */}
+        <div className="text-center">
+          <h2 className="text-base md:text-lg font-black text-[#f5ebe0] font-serif uppercase tracking-widest">
+            {currentVillage.name.toUpperCase()} VADIVASA
+          </h2>
+        </div>
+
+        {/* Top-Right Utility Row */}
+        <div className="flex items-center gap-1.5">
+          <div className="w-7 h-7 rounded-full bg-[#1b120c] border border-amber-500/40 text-amber-200 flex items-center justify-center text-xs">
+            <HelpCircle className="w-3.5 h-3.5" />
+          </div>
+          <div className="w-7 h-7 rounded-full bg-[#1b120c] border border-amber-500/40 text-amber-200 flex items-center justify-center text-xs">
+            <Info className="w-3.5 h-3.5" />
+          </div>
+          <div className="w-7 h-7 rounded-full bg-[#1b120c] border border-amber-500/40 text-amber-200 flex items-center justify-center text-xs">
+            <Settings className="w-3.5 h-3.5" />
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 2. CENTER STADIUM REWARD CAROUSEL matching Image 4 ================= */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center my-1 space-y-2">
+        {/* Overarching Ribbon Banner matching Image 4 */}
+        <div className="bg-gradient-to-r from-transparent via-[#451f12] to-transparent border-y-2 border-amber-400 py-1.5 px-6 rounded-md shadow-2xl max-w-xl w-full">
+          <h3 className="text-sm md:text-lg font-black text-amber-200 font-serif tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+            {currentVillage.name.toUpperCase()} JALLIKATTU – SEASON CHAMPION REWARD
+          </h3>
+        </div>
+
+        {/* 4 3D Reward Cards in Carousel */}
+        <div className="relative flex items-center justify-center gap-2 md:gap-4 w-full max-w-3xl my-2">
+          {/* Left Arrow */}
+          <button
+            onClick={handlePrev}
+            className="p-2 rounded-full bg-black/80 hover:bg-amber-500 hover:text-black border border-amber-400/50 text-white transition-all shadow-xl"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          {/* Cards Row */}
+          <div className="flex items-center justify-center gap-2 md:gap-3 overflow-hidden py-2">
+            {REWARDS_LIST.map((reward, idx) => {
+              const isSelected = idx === activeIdx;
+              return (
                 <div
-                  key={idx}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    idx === currentIndex ? 'bg-amber-400 w-4' : 'bg-zinc-700'
+                  key={reward.id}
+                  onClick={() => {
+                    soundManager.playThavilSnap(0.6);
+                    setActiveIdx(idx);
+                  }}
+                  className={`relative rounded-2xl border-2 transition-all cursor-pointer p-3 flex flex-col items-center justify-between shadow-2xl ${
+                    isSelected
+                      ? 'w-36 md:w-44 h-48 md:h-56 bg-[#2b170e] border-amber-400 scale-105 ring-2 ring-amber-400/50 shadow-amber-500/30'
+                      : 'w-28 md:w-32 h-36 md:h-44 bg-black/60 border-amber-500/30 opacity-60 hover:opacity-90'
                   }`}
-                />
-              ))}
-            </div>
+                >
+                  <div className="text-[9px] font-bold text-amber-300 font-serif uppercase">
+                    {reward.category}
+                  </div>
+                  <div className="text-4xl md:text-5xl my-auto animate-pulse">
+                    {reward.icon}
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs font-black text-white font-serif">
+                      {reward.name}
+                    </div>
+                    <div className="text-[10px] text-amber-400 font-tamil font-bold">
+                      {reward.tamilName}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Action CTAs */}
-          <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-            <button
-              onClick={() => {
-                soundManager.playThavilSnap(0.8);
-                setScreen('world_map');
-              }}
-              className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-tamil-marigold to-tamil-saffron text-black font-black text-xs md:text-sm shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-2 border border-amber-200"
-            >
-              <MapPin className="w-4 h-4" />
-              <span>CONTINUE TO WORLD MAP (அடுத்த களம்)</span>
-            </button>
+          {/* Right Arrow */}
+          <button
+            onClick={handleNext}
+            className="p-2 rounded-full bg-black/80 hover:bg-amber-500 hover:text-black border border-amber-400/50 text-white transition-all shadow-xl"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
 
-            <button
-              onClick={() => {
-                soundManager.playThavilSnap(0.8);
-                setScreen('trophy_hall');
-              }}
-              className="py-3.5 px-4 rounded-2xl bg-black/60 hover:bg-black border border-white/20 text-xs font-bold text-gray-300 hover:text-white transition-all"
-            >
-              Trophy Hall ➔
-            </button>
+        {/* Bottom Winner Ribbon matching Image 4 */}
+        <div className="bg-[#1b1008]/90 border border-amber-400 px-8 py-1 rounded-full text-xs font-serif font-black tracking-widest text-amber-300 uppercase shadow-2xl">
+          WINNER – PARTICIPANT #07
+        </div>
+      </div>
+
+      {/* ================= 3. BOTTOM BAR matching Image 4 ================= */}
+      <div className="relative z-20 flex items-end justify-between gap-2">
+        {/* Bottom-Left Action Card */}
+        <div className="bg-[#1b120c]/90 border border-amber-500/50 rounded-2xl p-2.5 shadow-xl text-xs space-y-1 max-w-[190px]">
+          <div className="flex items-center gap-1.5 text-white font-bold font-serif">
+            <span className="w-4 h-4 rounded-full border border-cyan-400 flex items-center justify-center text-[9px] text-cyan-300 font-mono">
+              X
+            </span>
+            <span>GRAB (Hold X)</span>
           </div>
+          <div className="flex items-center gap-1.5 text-red-300 font-bold font-serif">
+            <span className="w-4 h-4 rounded-full border border-red-400 flex items-center justify-center text-[9px] text-red-300 font-mono">
+              B
+            </span>
+            <span>AVOID</span>
+          </div>
+          <div className="text-amber-300 text-[10px] font-mono">
+            ⏱ Grip Skill ({gripSkillPercent}%)
+          </div>
+        </div>
+
+        {/* Center CTA to Proceed to Next Arena */}
+        <button
+          onClick={() => {
+            soundManager.playThavilSnap(0.8);
+            setScreen('world_map');
+          }}
+          className="py-3 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-tamil-marigold to-tamil-saffron text-black font-black text-xs md:text-sm shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center space-x-2 border border-amber-200 font-serif"
+        >
+          <MapPin className="w-4 h-4" />
+          <span>PROCEED TO WORLD MAP (அடுத்த களம்)</span>
+        </button>
+
+        {/* Bottom-Right Oval Minimap */}
+        <div className="w-24 h-16 md:w-32 md:h-20 rounded-2xl bg-[#120a06]/95 border border-amber-500/60 p-1 shadow-2xl flex items-center justify-center">
+          <svg className="w-full h-full" viewBox="-16 -10 32 20">
+            <rect x="-14" y="-8" width="28" height="16" rx="7" fill="#2e1910" stroke="#d97706" strokeWidth="0.8" />
+            <circle cx="0" cy="0" r="1.5" fill="#22c55e" />
+          </svg>
         </div>
       </div>
     </div>
