@@ -3,7 +3,83 @@ import { Canvas } from '@react-three/fiber';
 import { Bull3D } from '../../three/3DModels';
 import { useGameStore } from '../../../store/useGameStore';
 import { soundManager } from '../../../utils/soundSynthesizer';
-import { Waves, ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { Waves, ArrowLeft, Sparkles } from 'lucide-react';
+
+// Ancient Temple Tank (Theppakulam) stone steps and backdrop
+const TempleTankBackdrop3D: React.FC = () => {
+  return (
+    <group>
+      {/* Shallow Water Plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]}>
+        <planeGeometry args={[30, 30]} />
+        <meshStandardMaterial color="#0369a1" roughness={0.15} metalness={0.7} />
+      </mesh>
+
+      {/* Carved Stone Steps (Theppakulam Mandapam) */}
+      {[-1, -2, -3].map((step, idx) => (
+        <mesh key={idx} position={[0, -0.6 + idx * 0.25, -6 - idx * 1.5]}>
+          <boxGeometry args={[26, 0.5, 1.6]} />
+          <meshStandardMaterial color="#78716c" roughness={0.9} />
+        </mesh>
+      ))}
+
+      {/* Majestic Temple Gopuram Tower in Distance matching Image 4 */}
+      <group position={[0, 4, -15]}>
+        {/* Tier 1 Base */}
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[8, 3, 4]} />
+          <meshStandardMaterial color="#e7e5e4" roughness={0.9} />
+        </mesh>
+        {/* Tier 2 */}
+        <mesh position={[0, 2.5, 0]}>
+          <boxGeometry args={[6.5, 2.5, 3.5]} />
+          <meshStandardMaterial color="#d6d3d1" roughness={0.9} />
+        </mesh>
+        {/* Tier 3 */}
+        <mesh position={[0, 4.5, 0]}>
+          <boxGeometry args={[5, 2, 3]} />
+          <meshStandardMaterial color="#e7e5e4" roughness={0.9} />
+        </mesh>
+        {/* Tier 4 Top Kalasams */}
+        <mesh position={[0, 6.2, 0]}>
+          <coneGeometry args={[1.8, 2, 4]} />
+          <meshStandardMaterial color="#f59e0b" metalness={0.8} />
+        </mesh>
+      </group>
+
+      {/* Palm Trees along tank borders */}
+      {[-8, 8].map((x, idx) => (
+        <group key={idx} position={[x, 0, -8]}>
+          <mesh position={[0, 2, 0]}>
+            <cylinderGeometry args={[0.2, 0.3, 5, 8]} />
+            <meshStandardMaterial color="#78350f" />
+          </mesh>
+          <mesh position={[0, 4.8, 0]}>
+            <sphereGeometry args={[1.5, 8, 8]} />
+            <meshStandardMaterial color="#15803d" />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Trainer wading alongside bull in water holding rope */}
+      <group position={[1.4, -0.6, 0]}>
+        <mesh position={[0, 0.7, 0]} castShadow>
+          <cylinderGeometry args={[0.2, 0.25, 1.4, 8]} />
+          <meshStandardMaterial color="#d97706" />
+        </mesh>
+        <mesh position={[0, 1.5, 0]} castShadow>
+          <sphereGeometry args={[0.18, 10, 10]} />
+          <meshStandardMaterial color="#78350f" />
+        </mesh>
+        {/* Rope to Bull */}
+        <mesh position={[-0.7, 0.6, 0]} rotation={[0, 0, 0.1]}>
+          <cylinderGeometry args={[0.015, 0.015, 1.5, 6]} />
+          <meshStandardMaterial color="#fef08a" />
+        </mesh>
+      </group>
+    </group>
+  );
+};
 
 export const PondTraining3D: React.FC = () => {
   const { completeTraining, setScreen } = useGameStore();
@@ -45,7 +121,7 @@ export const PondTraining3D: React.FC = () => {
       if (next >= targetCount) {
         soundManager.playVictoryFanfare();
         setTimeout(() => {
-          completeTraining('stamina', 8, 'Pond Water Resistance (குளத்துப் பயிற்சி)');
+          completeTraining('stamina', 8, 'Temple Tank Water Resistance (குளத்துப் பயிற்சி)');
         }, 600);
       }
     } else {
@@ -68,35 +144,30 @@ export const PondTraining3D: React.FC = () => {
         </button>
 
         <div className="text-right">
-          <div className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-1">
+          <div className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider flex items-center gap-1 font-serif">
             <Waves className="w-3.5 h-3.5" />
-            <span>POND RESISTANCE TRAINING</span>
+            <span>TEMPLE TANK WATER ENDURANCE</span>
           </div>
-          <div className="text-sm font-black text-cyan-200">
+          <div className="text-sm font-black text-cyan-200 font-mono">
             Rhythm Lock: {successCount} / {targetCount}
           </div>
         </div>
       </div>
 
-      {/* 3D Shallow Pond Water Scene */}
+      {/* 3D Temple Tank Scene matching Image 4 */}
       <div className="relative z-10 flex-1 my-2 rounded-2xl bg-black/40 border border-cyan-500/20 overflow-hidden shadow-2xl flex items-center justify-center">
-        <Canvas camera={{ position: [0, 2.2, 5.0], fov: 45 }}>
-          <ambientLight intensity={0.8} color="#cffafe" />
-          <directionalLight position={[4, 6, 4]} intensity={1.5} color="#e0f2fe" />
+        <Canvas camera={{ position: [0, 2.5, 5.5], fov: 45 }}>
+          <ambientLight intensity={0.9} color="#cffafe" />
+          <directionalLight position={[4, 8, 4]} intensity={1.6} color="#fed7aa" />
           <pointLight position={[0, 2, -2]} intensity={0.9} color="#38bdf8" />
-          <fog attach="fog" args={['#082f49', 6, 20]} />
+          <fog attach="fog" args={['#082f49', 8, 25]} />
 
-          {/* Pond Water Plane */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]}>
-            <planeGeometry args={[25, 25]} />
-            <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.8} />
-          </mesh>
-
+          <TempleTankBackdrop3D />
           <Bull3D position={[0, -0.6, 0]} isReleased={true} />
         </Canvas>
 
         {feedback && (
-          <div className="absolute top-4 px-4 py-1.5 rounded-full bg-cyan-500/30 border border-cyan-400 text-cyan-200 text-xs font-black animate-bounce shadow-xl">
+          <div className="absolute top-4 px-4 py-1.5 rounded-full bg-cyan-500/30 border border-cyan-400 text-cyan-200 text-xs font-black animate-bounce shadow-xl font-serif">
             {feedback}
           </div>
         )}
@@ -119,10 +190,10 @@ export const PondTraining3D: React.FC = () => {
         {/* Tap Action CTA */}
         <button
           onClick={handleRhythmTap}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 text-white font-black text-sm shadow-2xl active:scale-95 transition-all flex items-center justify-center space-x-2 border border-cyan-300"
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 text-white font-black text-sm shadow-2xl active:scale-95 transition-all flex items-center justify-center space-x-2 border border-cyan-300 font-serif"
         >
           <Sparkles className="w-4 h-4" />
-          <span>TAP RHYTHM (SPACE / CLICK)</span>
+          <span>TAP RHYTHM LOCK (SPACE / CLICK)</span>
         </button>
       </div>
     </div>

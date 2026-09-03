@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Bull3D } from '../three/3DModels';
 import { useGameStore } from '../../store/useGameStore';
-import { BULL_TIERS } from '../three/BullGrowthTiers';
+import { BULL_TIERS, BullTier } from '../three/BullGrowthTiers';
 import { soundManager } from '../../utils/soundSynthesizer';
-import { ArrowLeft, Sparkles, Utensils, Award, Zap, Heart, Shield, Activity } from 'lucide-react';
+import { ArrowLeft, Sparkles, Utensils, Award, Shield, Zap, Heart, Activity } from 'lucide-react';
 
 export const BullSelection3D: React.FC = () => {
   const {
@@ -15,14 +15,50 @@ export const BullSelection3D: React.FC = () => {
     resetToArena,
   } = useGameStore();
 
-  const tier = BULL_TIERS[bullTier] || BULL_TIERS.young;
+  const [selectedTierKey, setSelectedTierKey] = useState<BullTier>(bullTier);
+  const activeTier = BULL_TIERS[selectedTierKey];
+
+  const tiersList: BullTier[] = ['young', 'trained', 'mature', 'championship'];
+
+  // Stat baseline generator for comparison preview
+  const getTierStats = (tier: BullTier) => {
+    switch (tier) {
+      case 'young':
+        return { strength: 25, speed: 20, stamina: 35, aggression: 15 };
+      case 'trained':
+        return { strength: 50, speed: 45, stamina: 55, aggression: 35 };
+      case 'mature':
+        return { strength: 75, speed: 65, stamina: 80, aggression: 65 };
+      case 'championship':
+        return { strength: 95, speed: 90, stamina: 95, aggression: 90 };
+    }
+  };
+
+  const renderSegmentedBar = (val: number) => {
+    const totalSegments = 16;
+    const activeSegments = Math.round((val / 100) * totalSegments);
+    return (
+      <div className="w-full h-3 bg-black/80 rounded border border-amber-500/40 p-0.5 flex gap-0.5">
+        {Array.from({ length: totalSegments }).map((_, i) => (
+          <div
+            key={i}
+            className={`flex-1 h-full rounded-[1px] transition-all duration-200 ${
+              i < activeSegments
+                ? 'bg-gradient-to-t from-amber-600 via-amber-400 to-yellow-200 shadow-[0_0_4px_#f59e0b]'
+                : 'bg-zinc-800/60'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="relative w-full h-full min-h-[520px] flex flex-col justify-between p-4 md:p-6 bg-gradient-to-b from-[#25150f] via-[#1a0f0a] to-[#120B09] text-white overflow-hidden select-none">
-      <div className="absolute inset-0 kolam-pattern pointer-events-none opacity-20" />
+    <div className="relative w-full h-full min-h-[520px] flex flex-col justify-between p-4 md:p-6 bg-gradient-to-b from-[#25150e] via-[#1a0f09] to-[#0f0704] text-white overflow-hidden select-none">
+      <div className="absolute inset-0 kolam-pattern pointer-events-none opacity-10" />
 
-      {/* Top Header Bar */}
-      <div className="relative z-20 flex items-center justify-between border-b border-white/10 pb-3">
+      {/* Top Header */}
+      <div className="relative z-20 flex items-center justify-between border-b border-white/10 pb-2">
         <button
           onClick={() => {
             soundManager.playThavilSnap(0.5);
@@ -35,121 +71,122 @@ export const BullSelection3D: React.FC = () => {
         </button>
 
         <div className="text-right">
-          <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
-            BULL OWNER TURNTABLE
+          <div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+            BULL REPUTATION &amp; GROWTH
           </div>
-          <div className="text-sm font-black text-amber-300">
-            {bullName}
+          <div className="text-sm font-black text-amber-300 font-serif">
+            {bullName} ({BULL_TIERS[bullTier].englishTitle})
           </div>
         </div>
       </div>
 
-      {/* Center 3D Turntable View */}
-      <div className="relative z-10 flex-1 flex flex-col md:flex-row items-center justify-between gap-4 my-2">
-        {/* Left: 3D Bull Turntable Canvas */}
-        <div className="relative w-full md:w-1/2 h-56 md:h-80 rounded-2xl bg-black/40 border border-white/10 overflow-hidden shadow-2xl flex items-center justify-center">
-          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg bg-black/70 border border-white/15 text-[10px] font-bold text-amber-300 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
-            <span>360° Turntable View</span>
-          </div>
+      {/* Script Title matching Image 1: "BULL GROWTH VISUAL" */}
+      <div className="relative z-10 text-center my-1">
+        <h2 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-orange-300 font-serif italic tracking-wide drop-shadow-md">
+          BULL GROWTH VISUAL
+        </h2>
+        <p className="text-[11px] text-amber-100/70 font-sans">
+          Select and inspect the 4 developmental athletic tiers of Kangayam heritage bulls
+        </p>
+      </div>
 
-          <Canvas camera={{ position: [0, 1.8, 4.2], fov: 45 }}>
-            <ambientLight intensity={0.9} color="#fff1e6" />
-            <directionalLight position={[5, 8, 5]} intensity={1.5} color="#ffedd5" />
-            <pointLight position={[-4, 3, -2]} intensity={0.6} color="#f59e0b" />
-            <Bull3D position={[0, -0.4, 0]} isTurntable={true} isReleased={false} />
-          </Canvas>
-        </div>
+      {/* 4 Growth Stages Cards Grid matching Image 1 */}
+      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-2.5 my-2">
+        {tiersList.map((t) => {
+          const cfg = BULL_TIERS[t];
+          const isCurrentPlayerTier = bullTier === t;
+          const isSelected = selectedTierKey === t;
+          const stats = isCurrentPlayerTier ? bullStats : getTierStats(t);
 
-        {/* Right: Bull Stats & Growth Tier Card */}
-        <div className="w-full md:w-1/2 space-y-3">
-          {/* Growth Tier Card */}
-          <div className={`p-4 rounded-2xl bg-black/60 border-2 ${tier.borderColor} shadow-xl space-y-2`}>
-            <div className="flex items-center justify-between">
-              <span className={`px-2.5 py-0.5 rounded-full ${tier.badgeBg} ${tier.badgeTextColor} text-[10px] font-black uppercase tracking-wider`}>
-                {tier.englishTitle}
-              </span>
-              <span className="text-xs text-amber-400 font-tamil font-bold">
-                {tier.tamilName}
-              </span>
-            </div>
-            <p className="text-xs text-gray-300 leading-relaxed">
-              {tier.description}
-            </p>
-          </div>
+          return (
+            <div
+              key={t}
+              onClick={() => {
+                soundManager.playThavilSnap(0.6);
+                setSelectedTierKey(t);
+              }}
+              className={`rounded-2xl border-2 p-3 transition-all cursor-pointer flex flex-col justify-between shadow-xl ${
+                isSelected
+                  ? 'bg-[#2b170e] border-amber-400 shadow-amber-500/20 ring-1 ring-amber-400 scale-[1.02]'
+                  : 'bg-black/60 border-amber-500/20 hover:border-amber-500/40 opacity-85 hover:opacity-100'
+              }`}
+            >
+              {/* Tier Header Label */}
+              <div className="text-center mb-2 pb-1.5 border-b border-white/10">
+                <div className="text-xs font-black uppercase tracking-wider text-white font-serif">
+                  {cfg.englishTitle}
+                </div>
+                <div className="text-[10px] text-amber-400 font-tamil font-bold">
+                  {cfg.tamilName}
+                </div>
+                {isCurrentPlayerTier && (
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[8px] font-black border border-emerald-400/40">
+                    CURRENT TIER
+                  </span>
+                )}
+              </div>
 
-          {/* 4 Athletic Stat Bars */}
-          <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 space-y-2.5 shadow-xl">
-            {/* Strength */}
-            <div>
-              <div className="flex justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1 text-amber-300">
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Strength (திமில் வலிமை)</span>
-                </span>
-                <span className="text-white font-mono">{bullStats.strength}/100</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
-                <div className="h-full bg-amber-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.strength}%` }} />
-              </div>
-            </div>
+              {/* Stat Bars matching Image 1 */}
+              <div className="space-y-2 text-[10px] font-bold text-amber-200">
+                {/* STRENGTH */}
+                <div>
+                  <div className="flex justify-between mb-0.5">
+                    <span className="uppercase text-[9px] text-gray-300 font-mono">STRENGTH</span>
+                    <span className="font-mono text-amber-300">{stats.strength}</span>
+                  </div>
+                  {renderSegmentedBar(stats.strength)}
+                </div>
 
-            {/* Speed */}
-            <div>
-              <div className="flex justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1 text-cyan-300">
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Speed (வேகம்)</span>
-                </span>
-                <span className="text-white font-mono">{bullStats.speed}/100</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
-                <div className="h-full bg-cyan-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.speed}%` }} />
-              </div>
-            </div>
+                {/* SPEED */}
+                <div>
+                  <div className="flex justify-between mb-0.5">
+                    <span className="uppercase text-[9px] text-gray-300 font-mono">SPEED</span>
+                    <span className="font-mono text-amber-300">{stats.speed}</span>
+                  </div>
+                  {renderSegmentedBar(stats.speed)}
+                </div>
 
-            {/* Stamina */}
-            <div>
-              <div className="flex justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1 text-emerald-300">
-                  <Heart className="w-3.5 h-3.5" />
-                  <span>Stamina (திடம்)</span>
-                </span>
-                <span className="text-white font-mono">{bullStats.stamina}/100</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
-                <div className="h-full bg-emerald-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.stamina}%` }} />
-              </div>
-            </div>
+                {/* STAMINA */}
+                <div>
+                  <div className="flex justify-between mb-0.5">
+                    <span className="uppercase text-[9px] text-gray-300 font-mono">STAMINA</span>
+                    <span className="font-mono text-amber-300">{stats.stamina}</span>
+                  </div>
+                  {renderSegmentedBar(stats.stamina)}
+                </div>
 
-            {/* Aggression */}
-            <div>
-              <div className="flex justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1 text-rose-300">
-                  <Activity className="w-3.5 h-3.5" />
-                  <span>Aggression & Reflex (ஆக்ரோஷம்)</span>
-                </span>
-                <span className="text-white font-mono">{bullStats.aggression}/100</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
-                <div className="h-full bg-rose-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.aggression}%` }} />
+                {/* AGGRESSION */}
+                <div>
+                  <div className="flex justify-between mb-0.5">
+                    <span className="uppercase text-[9px] text-gray-300 font-mono">AGGRESSION</span>
+                    <span className="font-mono text-amber-300">{stats.aggression}</span>
+                  </div>
+                  {renderSegmentedBar(stats.aggression)}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          );
+        })}
+      </div>
+
+      {/* Center Description of Selected Tier */}
+      <div className="relative z-10 bg-black/60 border border-amber-500/30 rounded-xl p-2.5 text-center max-w-xl mx-auto w-full">
+        <p className="text-xs text-amber-100/90 font-serif">
+          &quot;{activeTier.description}&quot;
+        </p>
       </div>
 
       {/* Bottom Action CTAs */}
-      <div className="relative z-20 pt-2 flex flex-col sm:flex-row gap-2.5">
+      <div className="relative z-20 pt-2 flex flex-col sm:flex-row gap-2.5 max-w-xl mx-auto w-full">
         <button
           onClick={() => {
             soundManager.playThavilSnap(0.8);
             setScreen('bull_care');
           }}
-          className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-amber-400 via-tamil-marigold to-tamil-saffron text-black font-black text-xs md:text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2 border border-amber-200"
+          className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-amber-400 via-tamil-marigold to-tamil-saffron text-black font-black text-xs md:text-sm shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2 border border-amber-200 font-serif"
         >
           <Utensils className="w-4 h-4" />
-          <span>பராமரிப்பு & பயிற்சி • BEGIN CARE & TRAINING</span>
+          <span>பராமரிப்பு &amp; பயிற்சி • GO TO PADDOCK CARE</span>
         </button>
 
         <button
@@ -157,9 +194,9 @@ export const BullSelection3D: React.FC = () => {
             soundManager.playThavilSnap(0.8);
             resetToArena();
           }}
-          className="py-3.5 px-5 rounded-xl bg-black/60 hover:bg-black border border-amber-400/40 text-amber-300 hover:text-white font-bold text-xs md:text-sm transition-all"
+          className="py-3.5 px-5 rounded-xl bg-black/60 hover:bg-black border border-amber-400/40 text-amber-300 hover:text-white font-bold text-xs md:text-sm transition-all font-serif"
         >
-          ENTER ARENA WITH THIS BULL
+          ENTER ARENA ➔
         </button>
       </div>
     </div>
