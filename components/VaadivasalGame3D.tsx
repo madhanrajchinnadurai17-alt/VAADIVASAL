@@ -12,6 +12,10 @@ import { BullOwnerReward3D } from './screens/BullOwnerReward3D';
 import { WorldMap3D } from './screens/WorldMap3D';
 import { TravelTransition3D } from './screens/TravelTransition3D';
 import { GrandFinal3D } from './screens/GrandFinal3D';
+import { SeasonReward3D } from './screens/SeasonReward3D';
+import { TrophyHall3D } from './screens/TrophyHall3D';
+import { VictoryCelebration3D } from './screens/VictoryCelebration3D';
+import { Epilogue3D } from './screens/Epilogue3D';
 import { ResultScreen3D } from './screens/ResultScreen3D';
 import { GameHUDOverlay } from './hud/GameHUDOverlay';
 import { BullDashboard } from './BullDashboard';
@@ -57,7 +61,19 @@ export const VaadivasalGame3D: React.FC = () => {
       {/* 9. Phase 3: State Grand Championship Screen */}
       {screen === 'grand_final' && <GrandFinal3D />}
 
-      {/* 10. Bull Owner Legacy Dashboard */}
+      {/* 10. Phase 4: Season Champion Reward Screen */}
+      {screen === 'season_reward' && <SeasonReward3D />}
+
+      {/* 11. Phase 4: Trophy Hall / Championship Legacy */}
+      {screen === 'trophy_hall' && <TrophyHall3D />}
+
+      {/* 12. Phase 4: Victory Celebration (Crowd Hoist) */}
+      {screen === 'victory_celebration' && <VictoryCelebration3D />}
+
+      {/* 13. Phase 4: Epilogue & Unlocked Modes */}
+      {screen === 'epilogue' && <Epilogue3D />}
+
+      {/* 14. Bull Owner Legacy Dashboard */}
       {screen === 'bull_dashboard' && (
         <div className="w-full h-full overflow-y-auto p-2 bg-[#120B09]">
           <BullDashboard
@@ -71,7 +87,7 @@ export const VaadivasalGame3D: React.FC = () => {
         </div>
       )}
 
-      {/* 11. 3D Arena Screens (Entrance, Gate Release, Arena Interaction, Taming Minigame, Result) */}
+      {/* 15. 3D Arena Screens (Entrance, Gate Release, Arena Interaction, Taming Minigame, Result) */}
       {(screen === 'arena_entrance' ||
         screen === 'vaadivasal_release' ||
         screen === 'arena_interaction' ||

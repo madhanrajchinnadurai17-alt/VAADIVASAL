@@ -145,6 +145,24 @@ export const Bull3D: React.FC<{
           <meshStandardMaterial color="#f59e0b" emissive="#78350f" />
         </mesh>
 
+        {/* Championship Tier Sacred Vermilion & Vibhuti Paint Markings */}
+        {tierConfig.hasDecorativePaint && (
+          <group position={[0, 0.25, -0.45]}>
+            {/* Sacred Vermilion (Kumkum) Tilak */}
+            <mesh position={[0, 0, 0.05]}>
+              <sphereGeometry args={[0.12, 8, 8]} />
+              <meshStandardMaterial color="#dc2626" roughness={0.1} />
+            </mesh>
+            {/* Sacred Vibhuti Triple Horizontal Stripes */}
+            {[-0.06, 0, 0.06].map((y, idx) => (
+              <mesh key={idx} position={[0, y, 0.04]}>
+                <boxGeometry args={[0.32, 0.025, 0.02]} />
+                <meshBasicMaterial color="#ffffff" />
+              </mesh>
+            ))}
+          </group>
+        )}
+
         {/* Massive Sharp Upward Curved Horns (Kangayam Breed Trademark) */}
         {/* Left Horn */}
         <group position={[-0.35, 0.4, -0.1]} rotation={[-0.2, 0, -0.6]}>

@@ -19,8 +19,14 @@ export type GameScreen =
   | 'arena_interaction'
   | 'taming_minigame'
   | 'round_result'
+  | 'season_reward'
   | 'grand_final'
+  | 'trophy_hall'
+  | 'victory_celebration'
+  | 'epilogue'
   | 'bull_dashboard';
+
+export type ControlPhase = 'approach' | 'closing' | 'active_grip';
 
 export interface CompetitorPlayer {
   id: string;
@@ -32,20 +38,20 @@ export interface CompetitorPlayer {
 }
 
 export interface BullAthleticStats {
+  strength: number;
   speed: number;
   stamina: number;
-  strength: number;
-  temperament: number;
+  aggression: number;
 }
 
 export interface BullCareStats {
-  food: number;
-  water: number;
-  rest: number;
+  hunger: number;
+  hydration: number;
+  health: number;
 }
 
 export interface TrainingGain {
-  statName: 'speed' | 'stamina' | 'strength' | 'temperament';
+  statName: 'strength' | 'speed' | 'stamina' | 'aggression';
   amount: number;
   title: string;
   tierUp?: boolean;
@@ -62,17 +68,55 @@ interface GameState {
   currentVillage: VillageEvent;
   targetObjective: string;
   players: CompetitorPlayer[];
+  teamName: string;
+  rivalTeamName: string;
   
-  // Phase 2 Bull Owner Stats
+  // HUD Addendum: Player Stat & Reputation Panel
+  playerHealth: number;
+  playerMaxHealth: number;
+  playerStamina: number;
+  playerMaxStamina: number;
+  playerGripStrength: number;
+  currentReputation: number;
+  maxReputation: number;
+
+  // Dynamic Control Prompts
+  controlPhase: ControlPhase;
+  gripSkillPercent: number;
+  timingWindowSeconds: number;
+
+  // Dynamic Path Visualization
+  showPathVisualization: boolean;
+  activePathRouteName: string;
+
+  // AI Competition Interaction
+  isAIInteractionActive: boolean;
+  activeAIName: string | null;
+  activeAIBib: string | null;
+
+  // Live 2D Minimap Coordinates
+  playerCoords: { x: number; z: number };
+  bullCoords: { x: number; z: number };
+  aiCoords: Array<{ id: string; x: number; z: number; bib: string }>;
+
+  // Utility Modals
+  showHelpModal: boolean;
+  showInfoModal: boolean;
+  showSettingsModal: boolean;
+  showComingSoonModal: string | null;
+  
+  // Bull Growth & Care Stats
   bullStats: BullAthleticStats;
   careStats: BullCareStats;
   bullTier: BullTier;
   lastTrainingGain: TrainingGain | null;
 
-  // Phase 3 World Journey & Progression
+  // Phase 3 & 4 Progression
   unlockedVillageIndex: number;
   destinationVillage: VillageEvent | null;
   isNightJallikattu: boolean;
+  championshipProgress: number;
+  rewardInventory: string[];
 
   // Controls & Physics state
   joystick: { x: number; y: number };
@@ -103,25 +147,38 @@ interface GameState {
   resetToArena: () => void;
   toggleMute: () => boolean;
   togglePause: () => void;
+  setControlPhase: (phase: ControlPhase) => void;
+  togglePathVisualization: () => void;
+  triggerAIInteraction: (name: string, bib: string) => void;
+  endAIInteraction: () => void;
+  updateLiveCoords: (player: { x: number; z: number }, bull: { x: number; z: number }, ai?: Array<{ id: string; x: number; z: number; bib: string }>) => void;
+  setShowHelpModal: (show: boolean) => void;
+  setShowInfoModal: (show: boolean) => void;
+  setShowSettingsModal: (show: boolean) => void;
+  setShowComingSoonModal: (modeName: string | null) => void;
 
-  // Phase 2 Care & Training Actions
-  feedBull: () => void;
-  waterBull: () => void;
-  restBull: () => void;
-  completeTraining: (stat: 'speed' | 'stamina' | 'strength' | 'temperament', amount: number, title: string) => boolean;
+  // Care Screen 4 items -> 3 stats
+  feedBullFodder: () => void;
+  feedQualityFodder: () => void;
+  feedFoodGrains: () => void;
+  giveFreshWater: () => void;
 
-  // Phase 3 Village Travel Actions
+  // Training Action
+  completeTraining: (stat: 'strength' | 'speed' | 'stamina' | 'aggression', amount: number, title: string) => boolean;
+
+  // Phase 3 & 4 Actions
   travelToVillage: (village: VillageEvent) => void;
   toggleNightMode: () => void;
 }
 
+// Team PARTIKAIR with authentic bib numbers
 const INITIAL_PLAYERS: CompetitorPlayer[] = [
-  { id: '1', bib: '01', name: 'MURUGAN', isUser: false, completed: true, score: 210 },
-  { id: '2', bib: '02', name: 'SIVA', isUser: false, completed: true, score: 230 },
-  { id: '3', bib: '03', name: 'KARTHIK', isUser: false, completed: true, score: 195 },
-  { id: '4', bib: '04', name: 'AJITH', isUser: false, completed: true, score: 220 },
-  { id: '5', bib: '05', name: 'DINESH', isUser: false, completed: true, score: 240 },
-  { id: '6', bib: '06', name: 'YOU #07', isUser: true, completed: false, score: 250 },
+  { id: '1', bib: '18', name: 'MURUGAN', isUser: false, completed: true, score: 210 },
+  { id: '2', bib: '24', name: 'SIVA', isUser: false, completed: true, score: 230 },
+  { id: '3', bib: '31', name: 'KARTHIK', isUser: false, completed: true, score: 195 },
+  { id: '4', bib: '42', name: 'AJITH', isUser: false, completed: true, score: 220 },
+  { id: '5', bib: '55', name: 'DINESH', isUser: false, completed: true, score: 240 },
+  { id: '6', bib: '07', name: 'YOU', isUser: true, completed: false, score: 250 },
 ];
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -135,26 +192,70 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentVillage: TAMIL_VILLAGES[0],
   targetObjective: 'HOLD THE BULL FOR 10 SECONDS',
   players: INITIAL_PLAYERS,
+  teamName: 'PARTIKAIR',
+  rivalTeamName: 'VALLAKKOTTAI',
 
-  // Phase 2 State Defaults
+  // Player Stat & Reputation Panel
+  playerHealth: 250,
+  playerMaxHealth: 250,
+  playerStamina: 200,
+  playerMaxStamina: 200,
+  playerGripStrength: 21,
+  currentReputation: 10,
+  maxReputation: 100,
+
+  // Dynamic Control Prompts
+  controlPhase: 'approach',
+  gripSkillPercent: 75,
+  timingWindowSeconds: 0.2,
+
+  // Dynamic Path Visualization
+  showPathVisualization: false,
+  activePathRouteName: 'ROUTE C: ESCAPE ATTEMPT',
+
+  // AI Competition Interaction
+  isAIInteractionActive: false,
+  activeAIName: null,
+  activeAIBib: null,
+
+  // Live 2D Minimap Coordinates
+  playerCoords: { x: 0, z: 2.5 },
+  bullCoords: { x: 0, z: -4 },
+  aiCoords: [
+    { id: '1', x: -4, z: -4, bib: '18' },
+    { id: '2', x: -2.5, z: -6, bib: '24' },
+    { id: '3', x: 3.5, z: -5, bib: '31' },
+    { id: '4', x: 5, z: -3, bib: '42' },
+    { id: '5', x: 2, z: -8, bib: '55' },
+  ],
+
+  // Utility Modals
+  showHelpModal: false,
+  showInfoModal: false,
+  showSettingsModal: false,
+  showComingSoonModal: null,
+
+  // Bull Stats & Care Stats
   bullStats: {
+    strength: 48,
     speed: 45,
     stamina: 50,
-    strength: 48,
-    temperament: 42,
+    aggression: 42,
   },
   careStats: {
-    food: 75,
-    water: 80,
-    rest: 70,
+    hunger: 80,
+    hydration: 85,
+    health: 75,
   },
   bullTier: 'young',
   lastTrainingGain: null,
 
-  // Phase 3 Defaults
-  unlockedVillageIndex: 1, // First 2 unlocked by default for instant travel
+  // Phase 3 & 4 Progression
+  unlockedVillageIndex: 1,
   destinationVillage: null,
   isNightJallikattu: false,
+  championshipProgress: 65,
+  rewardInventory: ['double_kalash_pot', 'hero_bicycle', 'gold_coin', 'ceremonial_lamp'],
   
   joystick: { x: 0, y: 0 },
   isSprinting: false,
@@ -176,6 +277,37 @@ export const useGameStore = create<GameState>((set, get) => ({
   updateTimer: (timerSeconds) => set({ timerSeconds }),
   updateBullStamina: (bullStamina) => set({ bullStamina: Math.max(0, Math.min(100, bullStamina)) }),
   setTargetObjective: (targetObjective) => set({ targetObjective }),
+  setControlPhase: (controlPhase) => set({ controlPhase }),
+  togglePathVisualization: () => set((s) => ({ showPathVisualization: !s.showPathVisualization })),
+
+  triggerAIInteraction: (name, bib) => {
+    set({
+      isAIInteractionActive: true,
+      activeAIName: name,
+      activeAIBib: bib,
+    });
+  },
+
+  endAIInteraction: () => {
+    set({
+      isAIInteractionActive: false,
+      activeAIName: null,
+      activeAIBib: null,
+    });
+  },
+
+  updateLiveCoords: (player, bull, ai) => {
+    set({
+      playerCoords: player,
+      bullCoords: bull,
+      ...(ai ? { aiCoords: ai } : {}),
+    });
+  },
+
+  setShowHelpModal: (showHelpModal) => set({ showHelpModal }),
+  setShowInfoModal: (showInfoModal) => set({ showInfoModal }),
+  setShowSettingsModal: (showSettingsModal) => set({ showSettingsModal }),
+  setShowComingSoonModal: (showComingSoonModal) => set({ showComingSoonModal }),
   
   incrementHold: (dt) => {
     const current = get().holdSeconds + dt;
@@ -200,14 +332,22 @@ export const useGameStore = create<GameState>((set, get) => ({
   completeRound: (success) => {
     const currentIdx = TAMIL_VILLAGES.findIndex((v) => v.id === get().currentVillage.id);
     let nextUnlocked = get().unlockedVillageIndex;
+    let nextReputation = get().currentReputation + (success ? 15 : 5);
+
     if (success && currentIdx >= get().unlockedVillageIndex && currentIdx < TAMIL_VILLAGES.length - 1) {
       nextUnlocked = currentIdx + 1;
     }
 
+    const isFinalStage = currentIdx === TAMIL_VILLAGES.length - 1;
+
     set((state) => ({
       isTameSuccess: success,
       unlockedVillageIndex: nextUnlocked,
-      screen: currentIdx === TAMIL_VILLAGES.length - 1 && success ? 'grand_final' : 'round_result',
+      currentReputation: Math.min(100, nextReputation),
+      championshipProgress: isFinalStage ? 100 : Math.min(95, state.championshipProgress + 15),
+      screen: isFinalStage && success
+        ? 'victory_celebration'
+        : (success ? 'season_reward' : 'round_result'),
       players: state.players.map((p) => (p.isUser ? { ...p, completed: true, score: state.score } : p)),
     }));
   },
@@ -222,6 +362,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       bullPersonality: getRandomBullPersonality(),
       actionTrigger: null,
       targetObjective: 'HOLD THE BULL FOR 10 SECONDS',
+      controlPhase: 'approach',
+      isAIInteractionActive: false,
     });
   },
 
@@ -233,40 +375,52 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   togglePause: () => set((state) => ({ isPaused: !state.isPaused })),
 
-  // Phase 2 Care Actions
-  feedBull: () => {
+  // Care Screen 4 items -> 3 stats
+  feedBullFodder: () => {
     set((state) => ({
       careStats: {
         ...state.careStats,
-        food: Math.min(100, state.careStats.food + 25),
+        hunger: Math.min(100, state.careStats.hunger + 30),
       },
     }));
   },
 
-  waterBull: () => {
+  feedQualityFodder: () => {
     set((state) => ({
       careStats: {
         ...state.careStats,
-        water: Math.min(100, state.careStats.water + 25),
+        hunger: Math.min(100, state.careStats.hunger + 25),
+        health: Math.min(100, state.careStats.health + 15),
       },
     }));
   },
 
-  restBull: () => {
+  feedFoodGrains: () => {
     set((state) => ({
       careStats: {
         ...state.careStats,
-        rest: Math.min(100, state.careStats.rest + 30),
+        hunger: Math.min(100, state.careStats.hunger + 15),
       },
     }));
   },
 
+  giveFreshWater: () => {
+    set((state) => ({
+      careStats: {
+        ...state.careStats,
+        hydration: Math.min(100, state.careStats.hydration + 35),
+        health: Math.min(100, state.careStats.health + 5),
+      },
+    }));
+  },
+
+  // Training Action
   completeTraining: (stat, amount, title) => {
     const currentStats = get().bullStats;
     const care = get().careStats;
 
     // Soft penalty if care stats are low (< 40%)
-    const careMultiplier = (care.food < 40 || care.water < 40 || care.rest < 40) ? 0.7 : 1.0;
+    const careMultiplier = (care.hunger < 40 || care.hydration < 40 || care.health < 40) ? 0.7 : 1.0;
     const finalAmount = Math.max(2, Math.round(amount * careMultiplier));
 
     const updatedStats = {
@@ -276,12 +430,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Deduct care stats slightly
     const updatedCare = {
-      food: Math.max(10, care.food - 15),
-      water: Math.max(10, care.water - 15),
-      rest: Math.max(10, care.rest - 20),
+      hunger: Math.max(10, care.hunger - 15),
+      hydration: Math.max(10, care.hydration - 15),
+      health: Math.max(10, care.health - 10),
     };
 
-    const total = updatedStats.speed + updatedStats.stamina + updatedStats.strength + updatedStats.temperament;
+    const total = updatedStats.strength + updatedStats.speed + updatedStats.stamina + updatedStats.aggression;
     const oldTier = get().bullTier;
     const newTier = getTierForStats(total);
     const tierUp = oldTier !== newTier;
@@ -302,7 +456,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     return tierUp;
   },
 
-  // Phase 3 Village Travel Actions
+  // Phase 3 & 4 Village Travel Actions
   travelToVillage: (village: VillageEvent) => {
     set({
       destinationVillage: village,

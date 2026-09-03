@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment, ContactShadows } from '@react-three/drei';
 import {
   Bull3D,
@@ -11,6 +11,59 @@ import {
 import { CameraController } from './CameraController';
 import { useGameStore } from '../../store/useGameStore';
 import { soundManager } from '../../utils/soundSynthesizer';
+
+// Live Coordinator: updates Minimap positions and occasionally triggers AI Competition Interaction
+const ArenaLiveCoordinator: React.FC = () => {
+  const {
+    screen,
+    joystick,
+    triggerAIInteraction,
+    endAIInteraction,
+    isAIInteractionActive,
+    updateLiveCoords,
+  } = useGameStore();
+
+  useFrame((state) => {
+    if (screen !== 'arena_interaction' && screen !== 'taming_minigame') return;
+    const time = state.clock.getElapsedTime();
+
+    // Calculate live coordinates for 2D minimap
+    const playerX = joystick.x * 4;
+    const playerZ = 2.5 + joystick.y * 3;
+    const bullX = Math.sin(time * 0.8) * 3.5;
+    const bullZ = -4 + Math.cos(time * 0.8) * 2.0;
+
+    const aiList = [
+      { id: '1', x: -4 + Math.sin(time * 0.5) * 1.5, z: -4, bib: '18' },
+      { id: '2', x: -2.5 + Math.cos(time * 0.6) * 1.5, z: -6, bib: '24' },
+      { id: '3', x: 3.5 + Math.sin(time * 0.7) * 1.5, z: -5, bib: '31' },
+      { id: '4', x: 5 + Math.cos(time * 0.4) * 1.2, z: -3, bib: '42' },
+      { id: '5', x: 2 + Math.sin(time * 0.5) * 1.2, z: -8, bib: '55' },
+    ];
+
+    updateLiveCoords({ x: playerX, z: playerZ }, { x: bullX, z: bullZ }, aiList);
+  });
+
+  // Section 7: Trigger brief AI competitor interaction event
+  useEffect(() => {
+    if (screen !== 'arena_interaction') return;
+
+    const aiTimer = setTimeout(() => {
+      triggerAIInteraction('SIVA', '24');
+      soundManager.playCrowdCheer(2);
+
+      const endTimer = setTimeout(() => {
+        endAIInteraction();
+      }, 3200);
+
+      return () => clearTimeout(endTimer);
+    }, 8000);
+
+    return () => clearTimeout(aiTimer);
+  }, [screen, triggerAIInteraction, endAIInteraction]);
+
+  return null;
+};
 
 export const VaadivasalCanvas: React.FC = () => {
   const {
@@ -119,6 +172,7 @@ export const VaadivasalCanvas: React.FC = () => {
         />
 
         {/* 3D Scene Components */}
+        <ArenaLiveCoordinator />
         <CameraController />
         <ArenaEnvironment3D />
         <VaadivasalGate3D />

@@ -80,6 +80,20 @@ export const BullSelection3D: React.FC = () => {
 
           {/* 4 Athletic Stat Bars */}
           <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 space-y-2.5 shadow-xl">
+            {/* Strength */}
+            <div>
+              <div className="flex justify-between text-xs font-bold mb-1">
+                <span className="flex items-center gap-1 text-amber-300">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Strength (திமில் வலிமை)</span>
+                </span>
+                <span className="text-white font-mono">{bullStats.strength}/100</span>
+              </div>
+              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
+                <div className="h-full bg-amber-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.strength}%` }} />
+              </div>
+            </div>
+
             {/* Speed */}
             <div>
               <div className="flex justify-between text-xs font-bold mb-1">
@@ -108,31 +122,17 @@ export const BullSelection3D: React.FC = () => {
               </div>
             </div>
 
-            {/* Strength */}
-            <div>
-              <div className="flex justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1 text-amber-300">
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Strength (வலிமை)</span>
-                </span>
-                <span className="text-white font-mono">{bullStats.strength}/100</span>
-              </div>
-              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
-                <div className="h-full bg-amber-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.strength}%` }} />
-              </div>
-            </div>
-
-            {/* Temperament */}
+            {/* Aggression */}
             <div>
               <div className="flex justify-between text-xs font-bold mb-1">
                 <span className="flex items-center gap-1 text-rose-300">
                   <Activity className="w-3.5 h-3.5" />
-                  <span>Temperament & Reflex (எதிர்வினை)</span>
+                  <span>Aggression & Reflex (ஆக்ரோஷம்)</span>
                 </span>
-                <span className="text-white font-mono">{bullStats.temperament}/100</span>
+                <span className="text-white font-mono">{bullStats.aggression}/100</span>
               </div>
               <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-white/10">
-                <div className="h-full bg-rose-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.temperament}%` }} />
+                <div className="h-full bg-rose-400 rounded-full transition-all duration-300" style={{ width: `${bullStats.aggression}%` }} />
               </div>
             </div>
           </div>

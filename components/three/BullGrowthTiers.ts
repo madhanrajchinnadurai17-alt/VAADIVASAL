@@ -8,6 +8,7 @@ export interface TierConfig {
   scale: number;
   humpScale: number;
   hornScale: number;
+  hasDecorativePaint: boolean;
   borderColor: string;
   badgeBg: string;
   badgeTextColor: string;
@@ -23,10 +24,11 @@ export const BULL_TIERS: Record<BullTier, TierConfig> = {
     scale: 0.8,
     humpScale: 0.42,
     hornScale: 0.7,
+    hasDecorativePaint: false,
     borderColor: 'border-amber-700/60',
     badgeBg: 'bg-amber-900/40',
     badgeTextColor: 'text-amber-400',
-    description: 'Energetic calf building baseline strength and trust in the village paddock.',
+    description: 'Energetic young calf building baseline strength and trust in the village paddock.',
   },
   trained: {
     tier: 'trained',
@@ -36,6 +38,7 @@ export const BULL_TIERS: Record<BullTier, TierConfig> = {
     scale: 1.0,
     humpScale: 0.55,
     hornScale: 1.0,
+    hasDecorativePaint: false,
     borderColor: 'border-slate-300/80',
     badgeBg: 'bg-slate-700/40',
     badgeTextColor: 'text-slate-200',
@@ -49,6 +52,7 @@ export const BULL_TIERS: Record<BullTier, TierConfig> = {
     scale: 1.2,
     humpScale: 0.72,
     hornScale: 1.35,
+    hasDecorativePaint: false,
     borderColor: 'border-amber-400',
     badgeBg: 'bg-amber-500/20',
     badgeTextColor: 'text-amber-300',
@@ -56,16 +60,17 @@ export const BULL_TIERS: Record<BullTier, TierConfig> = {
   },
   championship: {
     tier: 'championship',
-    tamilName: 'வீரக் காளை சாம்பியன்',
-    englishTitle: 'Championship Kangayam',
+    tamilName: 'சாம்பியன் வீரக் காளை',
+    englishTitle: 'Championship Bull',
     minCumulativeStats: 340,
     scale: 1.4,
     humpScale: 0.9,
     hornScale: 1.65,
+    hasDecorativePaint: true,
     borderColor: 'border-cyan-400 ring-2 ring-cyan-400/50 shadow-cyan-500/50',
     badgeBg: 'bg-cyan-500/30',
     badgeTextColor: 'text-cyan-300',
-    description: 'Legendary festival bull. Feared by tamers across all Tamil Nadu arenas.',
+    description: 'Legendary festival bull adorned with sacred festival vermilion paint and brass horn caps.',
   },
 };
 

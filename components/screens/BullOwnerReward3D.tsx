@@ -85,8 +85,8 @@ export const BullOwnerReward3D: React.FC = () => {
                 <span className="text-amber-300">{bullStats.strength}</span>
               </div>
               <div className="p-1.5 rounded-lg bg-zinc-900 border border-white/5 flex justify-between">
-                <span className="text-gray-400">Reflex:</span>
-                <span className="text-rose-300">{bullStats.temperament}</span>
+                <span className="text-gray-400">Aggression:</span>
+                <span className="text-rose-300">{bullStats.aggression}</span>
               </div>
             </div>
           </div>
