@@ -13,7 +13,7 @@ export const MainMenu3D: React.FC = () => {
 
   const handleStartTrainBull = () => {
     soundManager.playThavilSnap(0.8);
-    setScreen('bull_dashboard');
+    setScreen('bull_selection');
   };
 
   return (

@@ -4,11 +4,14 @@ import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
 import { soundManager } from '../../utils/soundSynthesizer';
 
+import { BULL_TIERS } from './BullGrowthTiers';
+
 // ================= 1. KANGAYAM BULL 3D MODEL =================
 export const Bull3D: React.FC<{
   position?: [number, number, number];
   isReleased?: boolean;
-}> = ({ position = [0, 0, -12], isReleased = true }) => {
+  isTurntable?: boolean;
+}> = ({ position = [0, 0, -12], isReleased = true, isTurntable = false }) => {
   const groupRef = useRef<THREE.Group>(null);
   const leftHornRef = useRef<THREE.Mesh>(null);
   const rightHornRef = useRef<THREE.Mesh>(null);
@@ -17,7 +20,8 @@ export const Bull3D: React.FC<{
   const backLeftLegRef = useRef<THREE.Group>(null);
   const backRightLegRef = useRef<THREE.Group>(null);
 
-  const { screen, bullPersonality, joystick, isSprinting } = useGameStore();
+  const { screen, bullPersonality, bullTier, isSprinting } = useGameStore();
+  const tierConfig = BULL_TIERS[bullTier] || BULL_TIERS.young;
 
   // Internal AI Steering state
   const targetPos = useRef(new THREE.Vector3(0, 0, -5));
@@ -27,6 +31,14 @@ export const Bull3D: React.FC<{
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const time = state.clock.getElapsedTime();
+
+    // Apply Tier Scale
+    groupRef.current.scale.setScalar(tierConfig.scale);
+
+    if (isTurntable) {
+      groupRef.current.rotation.y = time * 0.4;
+      return;
+    }
 
     // 1. Walking / Galloping Leg Animation
     const strideSpeed = isReleased ? (screen === 'taming_minigame' ? 18 : 12) : 4;

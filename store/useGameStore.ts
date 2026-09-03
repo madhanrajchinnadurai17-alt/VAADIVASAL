@@ -1,10 +1,17 @@
 import { create } from 'zustand';
 import { BullPersonality, getRandomBullPersonality } from '../game/bullPersonality';
 import { TAMIL_VILLAGES, VillageEvent } from '../game/villageSystem';
+import { BullTier, getTierForStats, BULL_TIERS } from '../components/three/BullGrowthTiers';
 
 export type GameScreen =
   | 'loading'
   | 'main_menu'
+  | 'bull_selection'
+  | 'bull_care'
+  | 'training_pond'
+  | 'training_sprint'
+  | 'training_reaction'
+  | 'bull_reward'
   | 'arena_entrance'
   | 'vaadivasal_release'
   | 'arena_interaction'
@@ -21,6 +28,26 @@ export interface CompetitorPlayer {
   score: number;
 }
 
+export interface BullAthleticStats {
+  speed: number;
+  stamina: number;
+  strength: number;
+  temperament: number;
+}
+
+export interface BullCareStats {
+  food: number;
+  water: number;
+  rest: number;
+}
+
+export interface TrainingGain {
+  statName: 'speed' | 'stamina' | 'strength' | 'temperament';
+  amount: number;
+  title: string;
+  tierUp?: boolean;
+}
+
 interface GameState {
   screen: GameScreen;
   round: number;
@@ -33,6 +60,12 @@ interface GameState {
   targetObjective: string;
   players: CompetitorPlayer[];
   
+  // Phase 2 Bull Owner Stats
+  bullStats: BullAthleticStats;
+  careStats: BullCareStats;
+  bullTier: BullTier;
+  lastTrainingGain: TrainingGain | null;
+
   // Controls & Physics state
   joystick: { x: number; y: number };
   isSprinting: boolean;
@@ -62,6 +95,12 @@ interface GameState {
   resetToArena: () => void;
   toggleMute: () => boolean;
   togglePause: () => void;
+
+  // Phase 2 Care & Training Actions
+  feedBull: () => void;
+  waterBull: () => void;
+  restBull: () => void;
+  completeTraining: (stat: 'speed' | 'stamina' | 'strength' | 'temperament', amount: number, title: string) => boolean;
 }
 
 const INITIAL_PLAYERS: CompetitorPlayer[] = [
@@ -84,6 +123,21 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentVillage: TAMIL_VILLAGES[0],
   targetObjective: 'HOLD THE BULL FOR 10 SECONDS',
   players: INITIAL_PLAYERS,
+
+  // Phase 2 State Defaults
+  bullStats: {
+    speed: 45,
+    stamina: 50,
+    strength: 48,
+    temperament: 42,
+  },
+  careStats: {
+    food: 75,
+    water: 80,
+    rest: 70,
+  },
+  bullTier: 'young',
+  lastTrainingGain: null,
   
   joystick: { x: 0, y: 0 },
   isSprinting: false,
@@ -154,4 +208,73 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   togglePause: () => set((state) => ({ isPaused: !state.isPaused })),
+
+  // Phase 2 Care Actions
+  feedBull: () => {
+    set((state) => ({
+      careStats: {
+        ...state.careStats,
+        food: Math.min(100, state.careStats.food + 25),
+      },
+    }));
+  },
+
+  waterBull: () => {
+    set((state) => ({
+      careStats: {
+        ...state.careStats,
+        water: Math.min(100, state.careStats.water + 25),
+      },
+    }));
+  },
+
+  restBull: () => {
+    set((state) => ({
+      careStats: {
+        ...state.careStats,
+        rest: Math.min(100, state.careStats.rest + 30),
+      },
+    }));
+  },
+
+  completeTraining: (stat, amount, title) => {
+    const currentStats = get().bullStats;
+    const care = get().careStats;
+
+    // Soft penalty if care stats are low (< 40%)
+    const careMultiplier = (care.food < 40 || care.water < 40 || care.rest < 40) ? 0.7 : 1.0;
+    const finalAmount = Math.max(2, Math.round(amount * careMultiplier));
+
+    const updatedStats = {
+      ...currentStats,
+      [stat]: Math.min(100, currentStats[stat] + finalAmount),
+    };
+
+    // Deduct care stats slightly
+    const updatedCare = {
+      food: Math.max(10, care.food - 15),
+      water: Math.max(10, care.water - 15),
+      rest: Math.max(10, care.rest - 20),
+    };
+
+    const total = updatedStats.speed + updatedStats.stamina + updatedStats.strength + updatedStats.temperament;
+    const oldTier = get().bullTier;
+    const newTier = getTierForStats(total);
+    const tierUp = oldTier !== newTier;
+
+    set({
+      bullStats: updatedStats,
+      careStats: updatedCare,
+      bullTier: newTier,
+      lastTrainingGain: {
+        statName: stat,
+        amount: finalAmount,
+        title,
+        tierUp,
+      },
+      screen: 'bull_reward',
+    });
+
+    return tierUp;
+  },
 }));

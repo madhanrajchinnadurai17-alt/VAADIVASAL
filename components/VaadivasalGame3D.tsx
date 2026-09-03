@@ -3,6 +3,12 @@ import dynamic from 'next/dynamic';
 import { useGameStore } from '../store/useGameStore';
 import { LoadingScreen3D } from './screens/LoadingScreen3D';
 import { MainMenu3D } from './screens/MainMenu3D';
+import { BullSelection3D } from './screens/BullSelection3D';
+import { BullCare3D } from './screens/BullCare3D';
+import { PondTraining3D } from './screens/training/PondTraining3D';
+import { SprintTraining3D } from './screens/training/SprintTraining3D';
+import { ReactionTraining3D } from './screens/training/ReactionTraining3D';
+import { BullOwnerReward3D } from './screens/BullOwnerReward3D';
 import { ResultScreen3D } from './screens/ResultScreen3D';
 import { GameHUDOverlay } from './hud/GameHUDOverlay';
 import { BullDashboard } from './BullDashboard';
@@ -25,7 +31,21 @@ export const VaadivasalGame3D: React.FC = () => {
       {/* 2. Main Menu */}
       {screen === 'main_menu' && <MainMenu3D />}
 
-      {/* 3. Bull Owner Dashboard */}
+      {/* 3. Phase 2: Bull Selection (Turntable 3D) */}
+      {screen === 'bull_selection' && <BullSelection3D />}
+
+      {/* 4. Phase 2: Bull Care & Paddock Management */}
+      {screen === 'bull_care' && <BullCare3D />}
+
+      {/* 5. Phase 2: Training Mini-Games */}
+      {screen === 'training_pond' && <PondTraining3D />}
+      {screen === 'training_sprint' && <SprintTraining3D />}
+      {screen === 'training_reaction' && <ReactionTraining3D />}
+
+      {/* 6. Phase 2: Bull Owner Reward / Stat Gains */}
+      {screen === 'bull_reward' && <BullOwnerReward3D />}
+
+      {/* 7. Bull Owner Legacy Dashboard */}
       {screen === 'bull_dashboard' && (
         <div className="w-full h-full overflow-y-auto p-2 bg-[#120B09]">
           <BullDashboard
@@ -39,7 +59,7 @@ export const VaadivasalGame3D: React.FC = () => {
         </div>
       )}
 
-      {/* 4. 3D Arena Screens (Entrance, Gate Release, Arena Interaction, Taming Minigame, Result) */}
+      {/* 8. 3D Arena Screens (Entrance, Gate Release, Arena Interaction, Taming Minigame, Result) */}
       {(screen === 'arena_entrance' ||
         screen === 'vaadivasal_release' ||
         screen === 'arena_interaction' ||
