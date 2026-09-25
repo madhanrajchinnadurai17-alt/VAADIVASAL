@@ -18,6 +18,12 @@ export const GameHUDOverlay: React.FC = () => {
     setJoystick,
     canGrabBull,
     distanceToBull,
+    weather,
+    cycleWeather,
+    cloudSaveProgress,
+    isMultiplayerLobbyOpen,
+    toggleMultiplayerLobby,
+    globalLeaderboard,
   } = useGameStore();
 
   // Interactive Virtual Touch Joystick
@@ -175,12 +181,50 @@ export const GameHUDOverlay: React.FC = () => {
           </div>
         </div>
 
-        {/* Top-Right: Score Card + Players Leaderboard Card */}
+        {/* Top-Right: Weather, Cloud Save, Multiplayer & Score */}
         <div className="pointer-events-auto flex flex-col items-end gap-1.5">
-          {/* Score Card */}
-          <div className="bg-black/90 border border-white/20 px-4 py-1.5 rounded-md shadow-xl text-right">
-            <span className="text-xs font-black text-white uppercase">SCORE : </span>
-            <span className="text-sm font-black text-[#facc15] font-mono">{score}</span>
+          <div className="flex items-center gap-1.5">
+            {/* Weather Toggle */}
+            <button
+              onClick={() => {
+                soundManager.playThavilSnap(0.5);
+                cycleWeather();
+              }}
+              className="px-2 py-1 rounded-md bg-black/85 border border-white/20 text-[10px] text-amber-300 font-bold hover:bg-black transition-all"
+              title="Cycle Weather (Clear / Overcast / Dust Storm)"
+            >
+              {weather === 'clear' ? '☀️ Clear' : weather === 'overcast' ? '☁️ Overcast' : '🌪️ Dust'}
+            </button>
+
+            {/* Cloud Save Button */}
+            <button
+              onClick={() => {
+                soundManager.playGripSuccess(1);
+                cloudSaveProgress();
+              }}
+              className="px-2 py-1 rounded-md bg-black/85 border border-white/20 text-[10px] text-emerald-400 font-bold hover:bg-black transition-all active:scale-95"
+              title="Cloud Save Progress"
+            >
+              💾 Cloud Save
+            </button>
+
+            {/* Multiplayer Leaderboard Button */}
+            <button
+              onClick={() => {
+                soundManager.playThavilSnap(0.5);
+                toggleMultiplayerLobby();
+              }}
+              className="px-2 py-1 rounded-md bg-black/85 border border-white/20 text-[10px] text-cyan-300 font-bold hover:bg-black transition-all active:scale-95"
+              title="Multiplayer Rankings"
+            >
+              🏆 Global
+            </button>
+
+            {/* Score Card */}
+            <div className="bg-black/90 border border-white/20 px-3 py-1 rounded-md shadow-xl text-right">
+              <span className="text-[10px] font-black text-white uppercase">SCORE: </span>
+              <span className="text-xs font-black text-[#facc15] font-mono">{score}</span>
+            </div>
           </div>
 
           {/* Players Leaderboard Card matching image */}
@@ -213,6 +257,61 @@ export const GameHUDOverlay: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Global Multiplayer Rankings Modal */}
+      {isMultiplayerLobbyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto">
+          <div className="bg-[#180e08] border-2 border-amber-400 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-3 text-white">
+            <div className="flex justify-between items-center border-b border-white/10 pb-2">
+              <h3 className="text-sm font-black text-amber-300 uppercase font-serif tracking-wider">
+                🏆 Global Jallikattu Circuit Leaderboard
+              </h3>
+              <button
+                onClick={toggleMultiplayerLobby}
+                className="w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1.5 text-xs">
+              {globalLeaderboard.map((entry) => (
+                <div
+                  key={entry.rank}
+                  className={`p-2 rounded-lg flex items-center justify-between border ${
+                    entry.isUser
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-200 font-bold'
+                      : 'bg-black/40 border-white/10 text-gray-300'
+                  }`}
+                >
+                  <span className="font-mono text-amber-400 font-black w-6">#{entry.rank}</span>
+                  <span className="flex-1 text-left font-serif">{entry.name}</span>
+                  <span className="text-[10px] text-gray-400 mr-2">{entry.village}</span>
+                  <span className="font-mono font-black text-white">{entry.score} pts</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                onClick={() => {
+                  cloudSaveProgress();
+                  alert('Rankings Synced with Cloud!');
+                }}
+                className="flex-1 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white font-black text-xs uppercase"
+              >
+                Sync Scores
+              </button>
+              <button
+                onClick={toggleMultiplayerLobby}
+                className="py-2 px-4 rounded-xl bg-amber-500 text-black font-black text-xs uppercase"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= 2. BOTTOM HUD matching Image 1 ================= */}
       <div className="flex items-end justify-between">

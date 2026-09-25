@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { VaadivasalGame3D } from '../components/VaadivasalGame3D';
-import { VillageMapModal } from '../components/VillageMapModal';
-import { TamerProfileModal } from '../components/TamerProfileModal';
+import { useGameStore } from '../store/useGameStore';
 import { TAMIL_VILLAGES, VillageEvent } from '../game/villageSystem';
 import {
   GameSaveData,
@@ -84,7 +83,7 @@ export default function Home() {
 
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowVillageMap(true)}
+              onClick={() => useGameStore.getState().setScreen('world_map')}
               className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-black/60 hover:bg-tamil-saffron/20 text-tamil-gold border border-tamil-saffron/30 text-xs font-bold transition-all"
             >
               <MapPin className="w-3.5 h-3.5" />
@@ -92,7 +91,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setShowTamerProfile(true)}
+              onClick={() => useGameStore.getState().setScreen('trophy_hall')}
               className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-black/60 hover:bg-tamil-saffron/20 text-tamil-gold border border-tamil-saffron/30 text-xs font-bold transition-all"
             >
               <Trophy className="w-3.5 h-3.5" />
@@ -124,27 +123,6 @@ export default function Home() {
             <span>Circuit: <strong>{currentVillage.name} ({currentVillage.district})</strong></span>
           </div>
         </footer>
-
-        {/* Modals */}
-        {showVillageMap && (
-          <VillageMapModal
-            unlockedIndex={saveData.unlockedVillageIndex}
-            currentVillageId={saveData.currentVillageId}
-            onSelectVillage={handleSelectVillage}
-            onClose={() => setShowVillageMap(false)}
-          />
-        )}
-
-        {showTamerProfile && (
-          <TamerProfileModal
-            tamer={saveData.tamer}
-            prizes={saveData.prizeShowcase}
-            reputationTitle={saveData.ownerRankTitle}
-            totalMatches={saveData.totalMatchesPlayed}
-            totalWins={saveData.totalTamesWon}
-            onClose={() => setShowTamerProfile(false)}
-          />
-        )}
 
         {showPitchModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">

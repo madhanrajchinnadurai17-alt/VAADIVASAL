@@ -354,7 +354,36 @@ export const VaadivasalCanvas: React.FC = () => {
     setTargetObjective,
     isNightJallikattu,
     canGrabBull,
+    weather,
   } = useGameStore();
+
+  // Dynamic Lighting and Fog parameters based on Weather & Night Mode
+  const lightColor = isNightJallikattu
+    ? '#93c5fd'
+    : weather === 'overcast'
+    ? '#e2e8f0'
+    : weather === 'dust_storm'
+    ? '#f59e0b'
+    : '#ffedd5';
+
+  const lightIntensity = isNightJallikattu
+    ? 0.8
+    : weather === 'overcast'
+    ? 0.85
+    : weather === 'dust_storm'
+    ? 0.7
+    : 1.6;
+
+  const fogColor = isNightJallikattu
+    ? '#090d16'
+    : weather === 'overcast'
+    ? '#94a3b8'
+    : weather === 'dust_storm'
+    ? '#b45309'
+    : '#deb887';
+
+  const fogNear = isNightJallikattu ? 10 : weather === 'dust_storm' ? 5 : 14;
+  const fogFar = isNightJallikattu ? 42 : weather === 'dust_storm' ? 22 : 44;
 
   // Entrance & Release Sequence Timers
   useEffect(() => {
@@ -424,12 +453,12 @@ export const VaadivasalCanvas: React.FC = () => {
 
         {/* Ambient & Directional Sun/Moonlight */}
         <ambientLight
-          intensity={isNightJallikattu ? 0.35 : 0.7}
-          color={isNightJallikattu ? '#60a5fa' : '#fff1e6'}
+          intensity={isNightJallikattu ? 0.35 : weather === 'overcast' ? 0.5 : 0.7}
+          color={isNightJallikattu ? '#60a5fa' : weather === 'overcast' ? '#cbd5e1' : '#fff1e6'}
         />
         <directionalLight
           position={isNightJallikattu ? [5, 15, -8] : [10, 18, 12]}
-          intensity={isNightJallikattu ? 0.8 : 1.6}
+          intensity={lightIntensity}
           castShadow
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
@@ -439,7 +468,7 @@ export const VaadivasalCanvas: React.FC = () => {
           shadow-camera-right={15}
           shadow-camera-top={15}
           shadow-camera-bottom={-15}
-          color={isNightJallikattu ? '#93c5fd' : '#ffedd5'}
+          color={lightColor}
         />
 
         {/* Soft Ground Contact Ambient Occlusion Shadows */}
@@ -455,7 +484,7 @@ export const VaadivasalCanvas: React.FC = () => {
         {/* Dynamic Fog for Atmospheric Depth */}
         <fog
           attach="fog"
-          args={[isNightJallikattu ? '#090d16' : '#deb887', isNightJallikattu ? 10 : 16, 42]}
+          args={[fogColor, fogNear, fogFar]}
         />
 
         {/* Physics and AI Simulation Coordinator */}

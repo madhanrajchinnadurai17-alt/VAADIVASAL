@@ -133,6 +133,22 @@ interface GameState {
   distanceToBull: number;
   knockbackVelocity: { x: number; z: number };
   
+  // Weather & Atmosphere System (Step 4)
+  weather: 'clear' | 'overcast' | 'dust_storm';
+  setWeather: (weather: 'clear' | 'overcast' | 'dust_storm') => void;
+  cycleWeather: () => void;
+
+  // Player Account & Cloud Save (Step 7)
+  userAccount: { id: string; name: string; isGuest: boolean };
+  setUserAccount: (account: { id: string; name: string; isGuest: boolean }) => void;
+  cloudSaveProgress: () => void;
+  cloudLoadProgress: () => void;
+
+  // Multiplayer Foundation (Step 8)
+  isMultiplayerLobbyOpen: boolean;
+  toggleMultiplayerLobby: () => void;
+  globalLeaderboard: Array<{ rank: number; name: string; score: number; village: string; isUser?: boolean }>;
+  
   // Taming / Grip minigame state
   holdSeconds: number;
   targetHoldSeconds: number;
@@ -292,6 +308,74 @@ export const useGameStore = create<GameState>((set, get) => ({
   canGrabBull: false,
   distanceToBull: 6.5,
   knockbackVelocity: { x: 0, z: 0 },
+
+  // Weather & Atmosphere System (Step 4)
+  weather: 'clear',
+  setWeather: (weather) => set({ weather }),
+  cycleWeather: () =>
+    set((s) => ({
+      weather:
+        s.weather === 'clear'
+          ? 'overcast'
+          : s.weather === 'overcast'
+          ? 'dust_storm'
+          : 'clear',
+    })),
+
+  // Player Account & Cloud Save (Step 7)
+  userAccount: { id: 'tamer_07', name: 'TAMER #07', isGuest: false },
+  setUserAccount: (userAccount) => set({ userAccount }),
+  cloudSaveProgress: () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const state = get();
+      const payload = {
+        score: state.score,
+        reputation: state.currentReputation,
+        unlockedIndex: state.unlockedVillageIndex,
+        bullStats: state.bullStats,
+        careStats: state.careStats,
+        tier: state.bullTier,
+        inventory: state.rewardInventory,
+        account: state.userAccount,
+      };
+      localStorage.setItem('vaadivasal_cloud_save', JSON.stringify(payload));
+    } catch (e) {
+      console.warn('Cloud save error', e);
+    }
+  },
+  cloudLoadProgress: () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem('vaadivasal_cloud_save');
+      if (saved) {
+        const data = JSON.parse(saved);
+        set({
+          score: data.score ?? get().score,
+          currentReputation: data.reputation ?? get().currentReputation,
+          unlockedVillageIndex: data.unlockedIndex ?? get().unlockedVillageIndex,
+          bullStats: data.bullStats ?? get().bullStats,
+          careStats: data.careStats ?? get().careStats,
+          bullTier: data.tier ?? get().bullTier,
+          rewardInventory: data.inventory ?? get().rewardInventory,
+          userAccount: data.account ?? get().userAccount,
+        });
+      }
+    } catch (e) {
+      console.warn('Cloud load error', e);
+    }
+  },
+
+  // Multiplayer Foundation (Step 8)
+  isMultiplayerLobbyOpen: false,
+  toggleMultiplayerLobby: () => set((s) => ({ isMultiplayerLobbyOpen: !s.isMultiplayerLobbyOpen })),
+  globalLeaderboard: [
+    { rank: 1, name: 'ALANGANALLUR CHIEFTAIN', score: 980, village: 'Alanganallur' },
+    { rank: 2, name: 'KANGAYAM TAMER #01', score: 850, village: 'Palamedu' },
+    { rank: 3, name: 'TAMER #07 (YOU)', score: 720, village: 'Avaniyapuram', isUser: true },
+    { rank: 4, name: 'SIRAVAYAL VEERAN', score: 680, village: 'Siravayal' },
+    { rank: 5, name: 'MADURAI WARRIOR', score: 610, village: 'Avaniyapuram' },
+  ],
   
   holdSeconds: 0,
   targetHoldSeconds: 10,

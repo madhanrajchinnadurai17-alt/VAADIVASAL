@@ -230,8 +230,8 @@ class SoundSynthesizer {
     noise.stop(t + duration);
   }
 
-  // --- BULL SNORT / BEAST ROAR FX ---
-  public playBullSnort() {
+  // --- BULL SNORT / BEAST ROAR FX (WITH SPATIAL STEREO PANNING) ---
+  public playBullSnort(pan = 0, distanceFactor = 1.0) {
     if (this.isMuted) return;
     this.initCtx();
     if (!this.ctx) return;
@@ -241,17 +241,62 @@ class SoundSynthesizer {
     const gain = this.ctx.createGain();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(90, t);
-    osc.frequency.exponentialRampToValueAtTime(35, t + 0.3);
+    osc.frequency.setValueAtTime(95, t);
+    osc.frequency.exponentialRampToValueAtTime(32, t + 0.32);
 
-    gain.gain.setValueAtTime(0.6, t);
+    const volume = Math.max(0.05, Math.min(0.8, 0.65 / Math.max(1, distanceFactor)));
+    gain.gain.setValueAtTime(volume, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    // Spatial Panner if supported
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), t);
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(this.ctx.destination);
+    } else {
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+    }
 
     osc.start(t);
     osc.stop(t + 0.45);
+  }
+
+  // --- DYNAMIC CROWD GASP / NEAR-MISS ---
+  public playCrowdGasp() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.8);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.12;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(450, t);
+    filter.frequency.exponentialRampToValueAtTime(850, t + 0.3);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.01, t);
+    gain.gain.linearRampToValueAtTime(0.4, t + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    noise.start(t);
+    noise.stop(t + 0.8);
   }
 
   // --- GRIP SUCCESS IMPACT CHIME ---

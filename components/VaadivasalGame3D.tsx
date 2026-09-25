@@ -18,8 +18,6 @@ import { VictoryCelebration3D } from './screens/VictoryCelebration3D';
 import { Epilogue3D } from './screens/Epilogue3D';
 import { ResultScreen3D } from './screens/ResultScreen3D';
 import { GameHUDOverlay } from './hud/GameHUDOverlay';
-import { BullDashboard } from './BullDashboard';
-import { INITIAL_PLAYER_BULL } from '../game/bullCareSystem';
 
 // Dynamic import for Three.js Canvas to prevent SSR issues
 const DynamicVaadivasalCanvas = dynamic(
@@ -73,19 +71,8 @@ export const VaadivasalGame3D: React.FC = () => {
       {/* 13. Phase 4: Epilogue & Unlocked Modes */}
       {screen === 'epilogue' && <Epilogue3D />}
 
-      {/* 14. Bull Owner Legacy Dashboard */}
-      {screen === 'bull_dashboard' && (
-        <div className="w-full h-full overflow-y-auto p-2 bg-[#120B09]">
-          <BullDashboard
-            bull={INITIAL_PLAYER_BULL}
-            coins={250}
-            onUpdateBull={() => {}}
-            onStartTraining={() => {}}
-            onEnterArenaWithBull={() => resetToArena()}
-            onBackToMenu={() => setScreen('main_menu')}
-          />
-        </div>
-      )}
+      {/* 14. Bull Owner Paddock Care */}
+      {screen === 'bull_dashboard' && <BullCare3D />}
 
       {/* 15. 3D Arena Screens (Entrance, Gate Release, Arena Interaction, Taming Minigame, Result) */}
       {(screen === 'arena_entrance' ||

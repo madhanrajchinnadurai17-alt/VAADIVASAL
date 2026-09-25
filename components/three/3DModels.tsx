@@ -831,9 +831,117 @@ export const DynamicPath3D: React.FC = () => {
 // ============================================================================
 // 6. ARENA ENVIRONMENT 3D (SANDY PBR GROUND, TIMBER BARRICADES, GALLERIES)
 // ============================================================================
+// ============================================================================
+// 6. DUST PARTICLES 3D (DYNAMIC DRIFT KICKED UP BY BULL & PLAYER)
+// ============================================================================
+export const DustParticles3D: React.FC = () => {
+  const { bullWorldPos, weather, bullAIState } = useGameStore();
+  const pointsRef = useRef<THREE.Points>(null);
+
+  const particleCount = weather === 'dust_storm' ? 80 : 35;
+  const [positions] = React.useState(() => {
+    const pos = new Float32Array(80 * 3);
+    for (let i = 0; i < 80; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 16;
+      pos[i * 3 + 1] = Math.random() * 2.5;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 22;
+    }
+    return pos;
+  });
+
+  useFrame((state, delta) => {
+    if (!pointsRef.current) return;
+    const geom = pointsRef.current.geometry;
+    const posAttr = geom.attributes.position;
+    const arr = posAttr.array as Float32Array;
+
+    const driftSpeed = weather === 'dust_storm' ? 8.0 : 2.5;
+    for (let i = 0; i < particleCount; i++) {
+      arr[i * 3] += delta * driftSpeed;
+      if (arr[i * 3] > 10) arr[i * 3] = -10;
+
+      // Swirl around bull if charging
+      if (bullAIState === 'charge' && i < 15) {
+        arr[i * 3] = THREE.MathUtils.lerp(arr[i * 3], bullWorldPos.x + (Math.random() - 0.5) * 2.0, delta * 3);
+        arr[i * 3 + 2] = THREE.MathUtils.lerp(arr[i * 3 + 2], bullWorldPos.z + (Math.random() - 0.5) * 2.0, delta * 3);
+      }
+    }
+    posAttr.needsUpdate = true;
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={particleCount}
+          array={positions.slice(0, particleCount * 3)}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={weather === 'dust_storm' ? 0.35 : 0.22}
+        color={weather === 'dust_storm' ? '#d97706' : '#fde68a'}
+        transparent
+        opacity={weather === 'dust_storm' ? 0.75 : 0.45}
+      />
+    </points>
+  );
+};
+
+// ============================================================================
+// 7. SPECTATOR CROWD 3D (CROWD CLUSTERS IN TRADITIONAL ATTIRE)
+// ============================================================================
+export const SpectatorCrowd3D: React.FC = () => {
+  const crowdColors = ['#f59e0b', '#dc2626', '#16a34a', '#2563eb', '#f8fafc', '#ea580c'];
+
+  return (
+    <group>
+      {/* Left Gallery Spectators */}
+      {[-12, -8, -4, 0, 4, 8, 12].map((z, idx) => (
+        <group key={`left-${idx}`} position={[-11.2, 4.2, z]}>
+          <mesh position={[0, 0, 0]}>
+            <sphereGeometry args={[0.22, 8, 8]} />
+            <meshStandardMaterial color="#8d5b4c" />
+          </mesh>
+          <mesh position={[0, -0.65, 0]}>
+            <cylinderGeometry args={[0.22, 0.28, 0.9, 8]} />
+            <meshStandardMaterial color={crowdColors[idx % crowdColors.length]} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Right Gallery Spectators */}
+      {[-12, -8, -4, 0, 4, 8, 12].map((z, idx) => (
+        <group key={`right-${idx}`} position={[11.2, 4.2, z]}>
+          <mesh position={[0, 0, 0]}>
+            <sphereGeometry args={[0.22, 8, 8]} />
+            <meshStandardMaterial color="#8d5b4c" />
+          </mesh>
+          <mesh position={[0, -0.65, 0]}>
+            <cylinderGeometry args={[0.22, 0.28, 0.9, 8]} />
+            <meshStandardMaterial color={crowdColors[(idx + 2) % crowdColors.length]} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+};
+
+// ============================================================================
+// 8. ARENA ENVIRONMENT 3D (SANDY PBR GROUND, TIMBER BARRICADES, GALLERIES)
+// ============================================================================
 export const ArenaEnvironment3D: React.FC = () => {
-  const { currentVillage, isNightJallikattu, screen } = useGameStore();
+  const { currentVillage, isNightJallikattu, screen, weather } = useGameStore();
   const isGrandFinal = currentVillage.id === 'championship' || screen === 'grand_final';
+
+  const groundColor = isNightJallikattu
+    ? '#8c6239'
+    : weather === 'overcast'
+    ? '#a89279'
+    : weather === 'dust_storm'
+    ? '#b46a2a'
+    : '#dfb37c';
 
   return (
     <group>
@@ -841,7 +949,7 @@ export const ArenaEnvironment3D: React.FC = () => {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[44, 54]} />
         <meshStandardMaterial
-          color={isNightJallikattu ? '#8c6239' : '#dfb37c'}
+          color={groundColor}
           roughness={0.92}
           metalness={0.03}
         />
@@ -855,6 +963,12 @@ export const ArenaEnvironment3D: React.FC = () => {
 
       {/* Dynamic 3D Path Overlay */}
       <DynamicPath3D />
+
+      {/* Dynamic Dust Particles */}
+      <DustParticles3D />
+
+      {/* Spectator Crowd along Galleries */}
+      <SpectatorCrowd3D />
 
       {/* Blue Timber Perimeter Double Barricades */}
       <mesh position={[-8.8, 1.5, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
