@@ -122,6 +122,16 @@ interface GameState {
   joystick: { x: number; y: number };
   isSprinting: boolean;
   actionTrigger: 'RUN' | 'DIVE' | 'GRAB' | null;
+
+  // Bull AI & Physics Simulation State
+  bullAIState: 'idle' | 'alert' | 'charge' | 'attack' | 'flee';
+  bullTargetId: string | null;
+  bullWorldPos: { x: number; y: number; z: number };
+  bullRotationY: number;
+  playerWorldPos: { x: number; y: number; z: number };
+  canGrabBull: boolean;
+  distanceToBull: number;
+  knockbackVelocity: { x: number; z: number };
   
   // Taming / Grip minigame state
   holdSeconds: number;
@@ -138,6 +148,18 @@ interface GameState {
   setJoystick: (joystick: { x: number; y: number }) => void;
   setIsSprinting: (sprint: boolean) => void;
   triggerAction: (action: 'RUN' | 'DIVE' | 'GRAB' | null) => void;
+  setBullAIState: (aiState: 'idle' | 'alert' | 'charge' | 'attack' | 'flee') => void;
+  setBullTargetId: (targetId: string | null) => void;
+  setLiveWorldTransforms: (
+    playerPos: { x: number; y: number; z: number },
+    bullPos: { x: number; y: number; z: number },
+    bullRot: number,
+    canGrab: boolean,
+    dist: number
+  ) => void;
+  applyKnockback: (vx: number, vz: number) => void;
+  depletePlayerStamina: (amount: number) => void;
+  recoverPlayerStamina: (amount: number) => void;
   updateTimer: (seconds: number) => void;
   updateBullStamina: (stamina: number) => void;
   setTargetObjective: (text: string) => void;
@@ -260,6 +282,16 @@ export const useGameStore = create<GameState>((set, get) => ({
   joystick: { x: 0, y: 0 },
   isSprinting: false,
   actionTrigger: null,
+
+  // Bull AI & Physics Simulation State
+  bullAIState: 'idle',
+  bullTargetId: null,
+  bullWorldPos: { x: 0, y: 0, z: -4 },
+  bullRotationY: 0,
+  playerWorldPos: { x: 0, y: 0, z: 2.5 },
+  canGrabBull: false,
+  distanceToBull: 6.5,
+  knockbackVelocity: { x: 0, z: 0 },
   
   holdSeconds: 0,
   targetHoldSeconds: 10,
@@ -274,6 +306,23 @@ export const useGameStore = create<GameState>((set, get) => ({
   setJoystick: (joystick) => set({ joystick }),
   setIsSprinting: (isSprinting) => set({ isSprinting }),
   triggerAction: (actionTrigger) => set({ actionTrigger }),
+  setBullAIState: (bullAIState) => set({ bullAIState }),
+  setBullTargetId: (bullTargetId) => set({ bullTargetId }),
+  setLiveWorldTransforms: (playerPos, bullPos, bullRot, canGrab, dist) =>
+    set({
+      playerWorldPos: playerPos,
+      bullWorldPos: bullPos,
+      bullRotationY: bullRot,
+      canGrabBull: canGrab,
+      distanceToBull: dist,
+      playerCoords: { x: playerPos.x, z: playerPos.z },
+      bullCoords: { x: bullPos.x, z: bullPos.z },
+    }),
+  applyKnockback: (vx, vz) => set({ knockbackVelocity: { x: vx, z: vz } }),
+  depletePlayerStamina: (amount) =>
+    set((s) => ({ playerStamina: Math.max(0, s.playerStamina - amount) })),
+  recoverPlayerStamina: (amount) =>
+    set((s) => ({ playerStamina: Math.min(s.playerMaxStamina, s.playerStamina + amount) })),
   updateTimer: (timerSeconds) => set({ timerSeconds }),
   updateBullStamina: (bullStamina) => set({ bullStamina: Math.max(0, Math.min(100, bullStamina)) }),
   setTargetObjective: (targetObjective) => set({ targetObjective }),

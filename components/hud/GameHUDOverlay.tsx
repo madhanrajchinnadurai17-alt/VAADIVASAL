@@ -16,6 +16,8 @@ export const GameHUDOverlay: React.FC = () => {
     triggerAction,
     setIsSprinting,
     setJoystick,
+    canGrabBull,
+    distanceToBull,
   } = useGameStore();
 
   // Interactive Virtual Touch Joystick
@@ -151,11 +153,12 @@ export const GameHUDOverlay: React.FC = () => {
 
           {/* Target Objective Card */}
           <div className="bg-black/90 border border-white/20 px-3 py-2 rounded-md shadow-xl max-w-[190px]">
-            <div className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
-              TARGET
+            <div className="text-[10px] font-black text-gray-400 uppercase tracking-wider flex justify-between items-center">
+              <span>TARGET</span>
+              <span className="font-mono text-[9px] text-gray-400">{distanceToBull.toFixed(1)}m</span>
             </div>
-            <div className="text-xs font-black text-[#facc15] uppercase tracking-wide mt-0.5 leading-tight">
-              {targetObjective}
+            <div className={`text-xs font-black uppercase tracking-wide mt-0.5 leading-tight ${canGrabBull ? 'text-emerald-400 animate-pulse' : 'text-[#facc15]'}`}>
+              {canGrabBull ? '⚡ IN RANGE! TAP GRAB (X) TO HOLD!' : targetObjective}
             </div>
           </div>
         </div>
@@ -278,7 +281,11 @@ export const GameHUDOverlay: React.FC = () => {
               triggerAction('GRAB');
               setTimeout(() => triggerAction(null), 400);
             }}
-            className="absolute bottom-1 right-2 w-16 h-16 md:w-18 md:h-18 rounded-full bg-black/85 border-2 border-white/80 text-white flex flex-col items-center justify-center active:scale-90 shadow-2xl transition-all"
+            className={`absolute bottom-1 right-2 w-16 h-16 md:w-18 md:h-18 rounded-full border-2 text-white flex flex-col items-center justify-center active:scale-90 shadow-2xl transition-all ${
+              canGrabBull
+                ? 'bg-emerald-600 border-emerald-300 ring-4 ring-emerald-400/80 animate-bounce text-emerald-100'
+                : 'bg-black/85 border-white/80'
+            }`}
           >
             <span className="text-2xl">✋</span>
             <span className="text-[10px] font-black uppercase tracking-wider">GRAB</span>
