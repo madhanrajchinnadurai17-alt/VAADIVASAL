@@ -204,7 +204,7 @@ export const Bull3D: React.FC<{
           <boxGeometry args={[1.05, 0.7, 1.9]} />
         </mesh>
 
-        {/* 4. Signature High-Arc Kangayam Dorsal Hump (திமில்) */}
+        {/* 4. Signature High-Arc Kangayam Dorsal Hump (திமில்) - Primary Embrace Target */}
         <mesh
           ref={humpRef}
           position={[0, 2.3, -0.45]}
@@ -213,6 +213,18 @@ export const Bull3D: React.FC<{
           castShadow
         >
           <sphereGeometry args={[0.58, 20, 20]} />
+        </mesh>
+
+        {/* Sacred Thimil Embrace Target Ring (திமில் மாலை / அலங்காரம்) */}
+        <mesh position={[0, 2.22, -0.45]} rotation={[-Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.62, 0.05, 8, 24]} />
+          <meshStandardMaterial
+            color="#f59e0b"
+            roughness={0.4}
+            metalness={0.2}
+            emissive="#f59e0b"
+            emissiveIntensity={0.25}
+          />
         </mesh>
 
         {/* 5. Hanging Dewlap Skin Fold (அடிமடி / தாடி) under Neck */}

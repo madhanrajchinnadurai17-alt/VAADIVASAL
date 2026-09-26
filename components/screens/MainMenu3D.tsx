@@ -20,7 +20,7 @@ export const MainMenu3D: React.FC = () => {
 
   const handleStartArena = () => {
     soundManager.playThavilSnap(0.8);
-    resetToArena();
+    setScreen('village_blessing');
   };
 
   const handleStartTrainBull = () => {

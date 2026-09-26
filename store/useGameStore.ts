@@ -6,6 +6,7 @@ import { BullTier, getTierForStats, BULL_TIERS } from '../components/three/BullG
 export type GameScreen =
   | 'loading'
   | 'main_menu'
+  | 'village_blessing'
   | 'bull_selection'
   | 'bull_care'
   | 'training_pond'
@@ -130,6 +131,7 @@ interface GameState {
   bullRotationY: number;
   playerWorldPos: { x: number; y: number; z: number };
   canGrabBull: boolean;
+  isHeadOnFoul: boolean;
   distanceToBull: number;
   knockbackVelocity: { x: number; z: number };
   
@@ -171,7 +173,8 @@ interface GameState {
     bullPos: { x: number; y: number; z: number },
     bullRot: number,
     canGrab: boolean,
-    dist: number
+    dist: number,
+    isHeadOnFoul?: boolean
   ) => void;
   applyKnockback: (vx: number, vz: number) => void;
   depletePlayerStamina: (amount: number) => void;
@@ -306,6 +309,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   bullRotationY: 0,
   playerWorldPos: { x: 0, y: 0, z: 2.5 },
   canGrabBull: false,
+  isHeadOnFoul: false,
   distanceToBull: 6.5,
   knockbackVelocity: { x: 0, z: 0 },
 
@@ -392,12 +396,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   triggerAction: (actionTrigger) => set({ actionTrigger }),
   setBullAIState: (bullAIState) => set({ bullAIState }),
   setBullTargetId: (bullTargetId) => set({ bullTargetId }),
-  setLiveWorldTransforms: (playerPos, bullPos, bullRot, canGrab, dist) =>
+  setLiveWorldTransforms: (playerPos, bullPos, bullRot, canGrab, dist, isHeadOnFoul = false) =>
     set({
       playerWorldPos: playerPos,
       bullWorldPos: bullPos,
       bullRotationY: bullRot,
       canGrabBull: canGrab,
+      isHeadOnFoul,
       distanceToBull: dist,
       playerCoords: { x: playerPos.x, z: playerPos.z },
       bullCoords: { x: bullPos.x, z: bullPos.z },

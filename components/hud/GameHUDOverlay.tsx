@@ -17,7 +17,11 @@ export const GameHUDOverlay: React.FC = () => {
     setIsSprinting,
     setJoystick,
     canGrabBull,
+    isHeadOnFoul,
     distanceToBull,
+    playerStamina,
+    playerMaxStamina,
+    currentVillage,
     weather,
     cycleWeather,
     cloudSaveProgress,
@@ -133,38 +137,66 @@ export const GameHUDOverlay: React.FC = () => {
               {isPaused ? <Play className="w-5 h-5 text-amber-400" /> : <Pause className="w-5 h-5" />}
             </button>
 
-            {/* Bull Info Card */}
-            <div className="bg-black/90 border border-white/20 px-3 py-1.5 rounded-md shadow-xl flex items-center gap-2.5 min-w-[170px]">
+            {/* Bull & Player Info Card */}
+            <div className="bg-black/90 border border-white/20 px-3 py-1.5 rounded-md shadow-xl flex items-center gap-2.5 min-w-[200px]">
               {/* Bull Icon */}
               <div className="text-white text-xl">
                 🐂
               </div>
-              <div className="flex-1">
-                <div className="text-[9px] font-bold text-gray-300 uppercase tracking-wider">
-                  BULL
+              <div className="flex-1 space-y-1">
+                <div className="flex justify-between items-center text-[9px] font-bold text-gray-300 uppercase tracking-wider">
+                  <span>காளை • {bullName}</span>
+                  <span className="text-[#22c55e]">{Math.round(bullStamina)}%</span>
                 </div>
-                <div className="text-xs font-black text-white uppercase tracking-wide">
-                  {bullName}
-                </div>
-                {/* Bright Green Vital Bar */}
-                <div className="w-full h-2 bg-zinc-800 rounded-sm overflow-hidden mt-0.5">
+                {/* Bull Vital Bar */}
+                <div className="w-full h-1.5 bg-zinc-800 rounded-sm overflow-hidden">
                   <div
                     className="h-full bg-[#22c55e] transition-all duration-300 shadow-[0_0_8px_#22c55e]"
                     style={{ width: `${bullStamina}%` }}
+                  />
+                </div>
+
+                {/* Player Stamina Bar */}
+                <div className="flex justify-between items-center text-[8px] font-bold text-gray-400 uppercase tracking-wider">
+                  <span>வீரர் #07 STAMINA</span>
+                  <span className="text-amber-400">{Math.round(playerStamina)}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-zinc-800 rounded-sm overflow-hidden">
+                  <div
+                    className="h-full bg-amber-400 transition-all duration-200 shadow-[0_0_8px_#f59e0b]"
+                    style={{ width: `${(playerStamina / playerMaxStamina) * 100}%` }}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Target Objective Card */}
-          <div className="bg-black/90 border border-white/20 px-3 py-2 rounded-md shadow-xl max-w-[190px]">
-            <div className="text-[10px] font-black text-gray-400 uppercase tracking-wider flex justify-between items-center">
-              <span>TARGET</span>
+          {/* Target Objective Card with Authentic Vocabulary & Foul Risk */}
+          <div className={`bg-black/90 border px-3 py-2 rounded-md shadow-xl max-w-[220px] transition-all ${
+            isHeadOnFoul
+              ? 'border-red-500 bg-red-950/80 ring-2 ring-red-400'
+              : canGrabBull
+              ? 'border-emerald-400 bg-emerald-950/80 ring-2 ring-emerald-400'
+              : 'border-white/20'
+          }`}>
+            <div className="text-[10px] font-black uppercase tracking-wider flex justify-between items-center">
+              <span className={isHeadOnFoul ? 'text-red-300' : 'text-gray-400'}>
+                {isHeadOnFoul ? '⚠️ FOUL RISK' : 'இலக்கு • TARGET'}
+              </span>
               <span className="font-mono text-[9px] text-gray-400">{distanceToBull.toFixed(1)}m</span>
             </div>
-            <div className={`text-xs font-black uppercase tracking-wide mt-0.5 leading-tight ${canGrabBull ? 'text-emerald-400 animate-pulse' : 'text-[#facc15]'}`}>
-              {canGrabBull ? '⚡ IN RANGE! TAP GRAB (X) TO HOLD!' : targetObjective}
+            <div className={`text-xs font-black uppercase tracking-wide mt-0.5 leading-tight ${
+              isHeadOnFoul
+                ? 'text-red-300 animate-pulse'
+                : canGrabBull
+                ? 'text-emerald-300 animate-pulse'
+                : 'text-[#facc15]'
+            }`}>
+              {isHeadOnFoul
+                ? '⚠️ தவறு! HORN CONTACT PROHIBITED! MOVE TO FLANK!'
+                : canGrabBull
+                ? '⚡ திமில் தயார்! EMBRACE THIMIL NOW! (X)'
+                : 'இலக்கு: திமில் தழுவல் • EMBRACE THIMIL'}
             </div>
           </div>
         </div>
@@ -373,21 +405,31 @@ export const GameHUDOverlay: React.FC = () => {
             <span className="text-[9px] font-black uppercase tracking-wider">DIVE</span>
           </button>
 
-          {/* Bottom Right Button: GRAB (✋) */}
+          {/* Bottom Right Button: EMBRACE THIMIL (✋) */}
           <button
             onClick={() => {
+              if (isHeadOnFoul) {
+                soundManager.playGripMiss();
+                alert('⚠️ தவறு! HORN CONTACT PROHIBITED! Move to the flank to embrace the Thimil (hump)!');
+                return;
+              }
               soundManager.playGripSuccess(1);
               triggerAction('GRAB');
               setTimeout(() => triggerAction(null), 400);
             }}
-            className={`absolute bottom-1 right-2 w-16 h-16 md:w-18 md:h-18 rounded-full border-2 text-white flex flex-col items-center justify-center active:scale-90 shadow-2xl transition-all ${
-              canGrabBull
-                ? 'bg-emerald-600 border-emerald-300 ring-4 ring-emerald-400/80 animate-bounce text-emerald-100'
+            className={`absolute bottom-1 right-2 w-16 h-16 md:w-20 md:h-20 rounded-full border-2 text-white flex flex-col items-center justify-center active:scale-90 shadow-2xl transition-all ${
+              isHeadOnFoul
+                ? 'bg-red-950 border-red-400 ring-4 ring-red-500/70 text-red-200 animate-pulse'
+                : canGrabBull
+                ? 'bg-emerald-600 border-emerald-300 ring-4 ring-emerald-400/80 animate-bounce text-emerald-100 shadow-[0_0_15px_#22c55e]'
                 : 'bg-black/85 border-white/80'
             }`}
           >
-            <span className="text-2xl">✋</span>
-            <span className="text-[10px] font-black uppercase tracking-wider">GRAB</span>
+            <span className="text-xl md:text-2xl">✋</span>
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider font-serif">
+              {isHeadOnFoul ? 'FOUL' : 'EMBRACE'}
+            </span>
+            <span className="text-[7px] text-amber-300 font-bold uppercase">THIMIL</span>
           </button>
         </div>
       </div>

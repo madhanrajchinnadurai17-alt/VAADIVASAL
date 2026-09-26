@@ -314,12 +314,28 @@ const ArenaLivePhysicsAndAICoordinator: React.FC = () => {
     }
 
     // ========================================================================
-    // 4. OMNIDIRECTIONAL COLLISION & DYNAMIC FLANK GRAB DETECTION (STEP 1 FIX)
+    // 4. OMNIDIRECTIONAL COLLISION & THIMIL FLANK GRAB DETECTION
     // ========================================================================
     const distancePlayerToBull = playerPosRef.current.distanceTo(bullPosRef.current);
 
-    // Flank / Hump Proximity: Allow grab anywhere in the arena if within 1.95 meters
-    const canGrab = distancePlayerToBull <= 1.95;
+    // Relative displacement vector from bull to player
+    const relX = playerPosRef.current.x - bullPosRef.current.x;
+    const relZ = playerPosRef.current.z - bullPosRef.current.z;
+
+    // Bull's forward facing direction
+    const bullForwardX = Math.sin(bullRotationYRef.current);
+    const bullForwardZ = Math.cos(bullRotationYRef.current);
+
+    // Forward alignment dot product (-1 = rear/tail, 0 = pure flank, +1 = direct cranium/horns)
+    const forwardDot = distancePlayerToBull > 0.05
+      ? (relX * bullForwardX + relZ * bullForwardZ) / distancePlayerToBull
+      : 0;
+
+    // Jallikattu Rules: Touching horns or tail is prohibited/foul.
+    // Only the Thimil (dorsal hump) flanked approach is valid for embracing.
+    const isFlankAligned = Math.abs(forwardDot) <= 0.82;
+    const isHeadOnFoul = distancePlayerToBull <= 2.2 && forwardDot > 0.82;
+    const canGrab = distancePlayerToBull <= 2.05 && isFlankAligned;
 
     // Sync high-precision live transforms to master Zustand store
     setLiveWorldTransforms(
@@ -327,7 +343,8 @@ const ArenaLivePhysicsAndAICoordinator: React.FC = () => {
       { x: bullPosRef.current.x, y: 0, z: bullPosRef.current.z },
       bullRotationYRef.current,
       canGrab,
-      distancePlayerToBull
+      distancePlayerToBull,
+      isHeadOnFoul
     );
 
     updateLiveCoords(

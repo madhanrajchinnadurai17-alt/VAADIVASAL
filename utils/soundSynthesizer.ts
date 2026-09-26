@@ -147,6 +147,34 @@ class SoundSynthesizer {
     osc2.stop(t + 1.8);
   }
 
+  // --- TEMPLE BELL CHIME (கோயில் மணி) ---
+  public playTempleBell(frequency = 587.33) {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const harmonics = [1, 2.76, 5.4, 8.9];
+    harmonics.forEach((h, idx) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(frequency * h, t);
+
+      const decay = 2.4 / (idx + 1);
+      const amp = 0.25 / (idx + 1);
+      gain.gain.setValueAtTime(amp, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + decay);
+    });
+  }
+
   // --- CONTINUOUS FESTIVAL DRUM LOOP ---
   public startFestiveDrums(tempoBpm = 135) {
     if (this.isMuted) return;

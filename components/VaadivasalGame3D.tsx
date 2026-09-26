@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { useGameStore } from '../store/useGameStore';
 import { LoadingScreen3D } from './screens/LoadingScreen3D';
 import { MainMenu3D } from './screens/MainMenu3D';
+import { VillageBlessing3D } from './screens/VillageBlessing3D';
 import { BullSelection3D } from './screens/BullSelection3D';
 import { BullCare3D } from './screens/BullCare3D';
 import { PondTraining3D } from './screens/training/PondTraining3D';
@@ -35,6 +36,9 @@ export const VaadivasalGame3D: React.FC = () => {
 
       {/* 2. Main Menu */}
       {screen === 'main_menu' && <MainMenu3D />}
+
+      {/* 2b. Pre-Round Mattu Pongal Temple Blessing */}
+      {screen === 'village_blessing' && <VillageBlessing3D />}
 
       {/* 3. Phase 2: Bull Selection (Turntable 3D) */}
       {screen === 'bull_selection' && <BullSelection3D />}
